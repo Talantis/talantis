@@ -1,48 +1,24 @@
 """
-Atlas Orchestrator — true token streaming
-==========================================
+Atlas Orchestrator — token streaming, no TaskGroup conflicts
+==============================================================
 
-The agent loop. Takes a user question, runs a back-and-forth conversation
-with Claude where Claude can call tools, then streams the final narrative
-answer to the user TOKEN BY TOKEN.
+WHY THIS VERSION
+----------------
+The previous version used `client.messages.stream()` as an `async with`
+context manager. On Vercel, that runs an internal `anyio.TaskGroup` to
+manage the SSE connection. When wrapped in FastAPI's `StreamingResponse`,
+which itself uses a TaskGroup to drive the response generator, the two
+TaskGroups conflict. The result is the ExceptionGroup we saw in logs:
 
-The flow:
+    ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+      File "starlette/responses.py", line 252
+        async with anyio.create_task_group() as task_group:
 
-   user question
-        │
-        ▼
-   ┌─────────────────────────────────────┐
-   │  Stream round 1 from Claude         │
-   │  · capture tool_use blocks          │
-   │  · stream text deltas to client     │
-   └──────┬──────────────────────────────┘
-          │
-          ▼
-   ┌─────────────────────────────────────┐
-   │  If tool calls were made:           │
-   │  · execute each against Postgres    │
-   │  · feed results back, loop          │
-   │  Otherwise:                         │
-   │  · we already streamed the answer   │
-   └─────────────────────────────────────┘
+This rewrite drops the context-manager API and uses `messages.create(
+stream=True)` directly. That returns a plain async iterator over events
+— no inner TaskGroup, no conflict with Starlette.
 
-This uses anthropic.AsyncAnthropic.messages.stream() which yields token
-deltas as they arrive from Claude's API. The frontend sees text appear
-character-by-character, exactly like ChatGPT.
-
-LOGGING
--------
-Every tool call is logged to stdout in a structured format that Vercel's
-Logs tab automatically captures. Example:
-
-  [atlas] ▶ query received: "How many UCLA students interned at Stripe?"
-  [atlas] ⤷ round 1 → claude (streaming)
-  [atlas] ⚙  tool call: filter_internships(university='UCLA', company='Stripe')
-  [atlas] ✓ tool result: filter_internships → 1 row, total_internships=3 (42ms)
-  [atlas] ⤷ round 2 → claude (streaming)
-  [atlas] ✎ final answer (87 chars, 2 rounds, 312ms total)
-
-Set LOG_LEVEL=DEBUG to also see the full tool result payloads.
+Same external behavior: token-by-token SSE streaming with tool use.
 """
 
 from __future__ import annotations
@@ -52,6 +28,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 import uuid
 from typing import AsyncGenerator
 
@@ -107,18 +84,14 @@ GUIDELINES:
 
 FORMATTING:
   - Use plain prose. No Markdown bold/italics, no asterisks for emphasis, no bullet \
-    characters at the start of lines. The frontend renders Markdown, but heavy \
-    formatting clutters Atlas's mythic voice.
-  - Short paragraphs separated by a blank line are fine.
-  - You may use simple bullets (one item per line, starting with "- ") if you must \
-    list 3+ items, but prefer prose.
+    characters at the start of lines. Short paragraphs separated by a blank line are fine.
 
 You are a guide, not a salesman.\
 """
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# LOG HELPERS
+# HELPERS
 # ════════════════════════════════════════════════════════════════════════════
 
 def _short_id() -> str:
@@ -167,24 +140,49 @@ def _sse(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
+def _get_anthropic_client() -> anthropic.AsyncAnthropic:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise RuntimeError(
+            "Missing ANTHROPIC_API_KEY env var. "
+            "Set it in Vercel → Project Settings → Environment Variables."
+        )
+    return anthropic.AsyncAnthropic(api_key=api_key)
+
+
+def _log_exception(trace_id: str, e: BaseException, prefix: str = "") -> None:
+    """
+    Log an exception with full traceback. Handles ExceptionGroup specially
+    since those wrap their real cause in a sub-exception list.
+    """
+    logger.error(f"[{trace_id}] ✗ {prefix}{type(e).__name__}: {e}")
+
+    # ExceptionGroup hides the real error in .exceptions
+    if hasattr(e, "exceptions"):
+        for i, sub in enumerate(e.exceptions):
+            logger.error(f"[{trace_id}]   sub-exception {i}: {type(sub).__name__}: {sub}")
+            sub_tb = "".join(traceback.format_exception(type(sub), sub, sub.__traceback__))
+            logger.error(f"[{trace_id}]   sub-traceback {i}:\n{sub_tb}")
+
+    tb = traceback.format_exc()
+    logger.error(f"[{trace_id}] traceback:\n{tb}")
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # MAIN STREAMING GENERATOR
-# Each round uses messages.stream() so the frontend sees tokens as they arrive.
+# Uses messages.create(stream=True) — a flat async iterator, no TaskGroup.
+# Wrapped in try/except so any exception is surfaced cleanly.
 # ════════════════════════════════════════════════════════════════════════════
 
 async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
     """
-    Run the Atlas tool-use loop with REAL token-by-token streaming.
+    Run the Atlas tool-use loop with token-by-token SSE streaming.
 
-    For each round we open a streaming connection to Claude. Two kinds of
-    blocks come through:
-      · text — yield each delta to the client immediately
-      · tool_use — accumulate, then execute after the round completes
-
-    Yields (Server-Sent Events):
-        {"text": "chunk"}     a token of narrative text
-        {"tool": "name"}      tool call notification (UX/loading state)
-        [DONE]                end of stream
+    Yields:
+        {"text": "..."}    text token
+        {"tool": "name"}   tool call notification
+        {"error": "msg"}   recoverable error — frontend should display
+        [DONE]             end of stream
     """
     trace_id = _short_id()
     t_start = time.time()
@@ -192,7 +190,29 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
     q_preview = user_question if len(user_question) <= 120 else user_question[:117] + "..."
     logger.info(f"[{trace_id}] ▶ query received: {q_preview!r}")
 
-    client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    try:
+        async for sse in _run_agent_loop(trace_id, t_start, user_question):
+            yield sse
+
+    except BaseException as e:
+        _log_exception(trace_id, e, prefix="FATAL: ")
+
+        # Extract a useful message — pick the deepest sub-exception if it's
+        # an ExceptionGroup, since that's the real error.
+        msg = f"{type(e).__name__}: {e}"
+        if hasattr(e, "exceptions") and e.exceptions:
+            inner = e.exceptions[0]
+            msg = f"{type(inner).__name__}: {inner}"
+
+        yield _sse({"error": msg[:300]})
+        yield "data: [DONE]\n\n"
+
+
+async def _run_agent_loop(
+    trace_id: str, t_start: float, user_question: str
+) -> AsyncGenerator[str, None]:
+    """The actual loop, separated so the wrapper above can catch errors."""
+    client = _get_anthropic_client()
     messages: list[dict] = [{"role": "user", "content": user_question}]
     total_tool_calls = 0
 
@@ -200,60 +220,97 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
         logger.info(f"[{trace_id}] ⤷ round {round_num} → claude (streaming)")
         t_round = time.time()
 
-        # Open a streaming connection. The async with block manages the network
-        # connection lifecycle; we iterate events inside it.
-        tool_uses_in_round: list[dict] = []
-        text_buffer = ""  # accumulated text for the assistant message in history
-
-        async with client.messages.stream(
+        # ── Open a streaming connection ────────────────────────────────────
+        # Use stream=True directly. This returns an async iterator over raw
+        # events — no internal TaskGroup, no conflict with Starlette.
+        stream = await client.messages.create(
             model=MODEL,
             max_tokens=MAX_TOKENS,
             system=ATLAS_SYSTEM_PROMPT,
             tools=TOOL_DEFINITIONS,
             messages=messages,
-        ) as stream:
-            # Iterate raw events so we can handle text deltas AND tool_use blocks.
-            # The .text_stream helper only yields text — we need both.
-            async for event in stream:
-                etype = event.type
-
-                if etype == "content_block_delta":
-                    # A piece of a content block has arrived
-                    delta = event.delta
-                    if delta.type == "text_delta":
-                        # ── TOKEN! Stream it to the client immediately ─────
-                        yield _sse({"text": delta.text})
-                        text_buffer += delta.text
-                    # tool_use blocks come as "input_json_delta" but we read
-                    # the full input from the final_message at the end —
-                    # streaming partial JSON to the client isn't useful.
-
-                elif etype == "content_block_stop":
-                    # A full content block has completed. If it was a tool_use
-                    # block, capture the full input from the final message later.
-                    pass
-
-            # When the stream completes, get the consolidated final message
-            final = await stream.get_final_message()
-
-        round_ms = int((time.time() - t_round) * 1000)
-        logger.debug(
-            f"[{trace_id}]   stop_reason={final.stop_reason} "
-            f"in_tokens={final.usage.input_tokens} "
-            f"out_tokens={final.usage.output_tokens} "
-            f"({round_ms}ms)"
+            stream=True,
         )
 
-        # Add the assistant's full response (text + tool_use blocks) to history
-        messages.append({"role": "assistant", "content": final.content})
+        # We need to reconstruct the assistant message from the events so we
+        # can append it to history for the next round. Track text and tool
+        # blocks as they stream in.
+        text_buffer = ""
+        # content_blocks[index] = {"type": "text", "text": "..."}
+        #                       or {"type": "tool_use", "id": ..., "name": ..., "input_json": "..."}
+        content_blocks: dict[int, dict] = {}
 
-        # Extract any tool_use blocks
-        tool_uses_in_round = [b for b in final.content if b.type == "tool_use"]
+        async for event in stream:
+            etype = event.type
 
-        if not tool_uses_in_round:
-            # ── No tool calls → final answer was already streamed ─────────
+            if etype == "content_block_start":
+                idx = event.index
+                block = event.content_block
+                if block.type == "text":
+                    content_blocks[idx] = {"type": "text", "text": ""}
+                elif block.type == "tool_use":
+                    content_blocks[idx] = {
+                        "type": "tool_use",
+                        "id": block.id,
+                        "name": block.name,
+                        "input_json": "",
+                    }
+
+            elif etype == "content_block_delta":
+                idx = event.index
+                delta = event.delta
+                if delta.type == "text_delta":
+                    yield _sse({"text": delta.text})
+                    text_buffer += delta.text
+                    if idx in content_blocks:
+                        content_blocks[idx]["text"] += delta.text
+                elif delta.type == "input_json_delta":
+                    if idx in content_blocks:
+                        content_blocks[idx]["input_json"] += delta.partial_json
+
+            elif etype == "message_delta":
+                # carries stop_reason, usage — nothing to forward to client
+                pass
+
+            elif etype == "message_stop":
+                pass
+
+        round_ms = int((time.time() - t_round) * 1000)
+
+        # ── Reconstruct assistant content for history ──────────────────────
+        assistant_content = []
+        tool_uses: list[dict] = []
+        for idx in sorted(content_blocks.keys()):
+            block = content_blocks[idx]
+            if block["type"] == "text":
+                assistant_content.append({"type": "text", "text": block["text"]})
+            elif block["type"] == "tool_use":
+                # Parse the accumulated JSON. Empty string means {} arguments.
+                try:
+                    tool_input = json.loads(block["input_json"]) if block["input_json"] else {}
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"[{trace_id}] bad tool input JSON for {block['name']}: "
+                        f"{block['input_json']!r} ({e})"
+                    )
+                    tool_input = {}
+                assistant_content.append({
+                    "type": "tool_use",
+                    "id": block["id"],
+                    "name": block["name"],
+                    "input": tool_input,
+                })
+                tool_uses.append({
+                    "id": block["id"],
+                    "name": block["name"],
+                    "input": tool_input,
+                })
+
+        messages.append({"role": "assistant", "content": assistant_content})
+
+        if not tool_uses:
+            # ── No tool calls: final answer was already streamed ───────────
             yield "data: [DONE]\n\n"
-
             total_ms = int((time.time() - t_start) * 1000)
             logger.info(
                 f"[{trace_id}] ✎ final answer "
@@ -263,22 +320,24 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
             )
             return
 
-        # ── Execute the tool(s) Claude requested ──────────────────────────
+        # ── Execute the tools Claude requested ─────────────────────────────
         tool_results = []
-        for tool_use in tool_uses_in_round:
+        for tool_use in tool_uses:
             total_tool_calls += 1
             logger.info(
                 f"[{trace_id}] ⚙  tool call: "
-                f"{tool_use.name}({_format_args(tool_use.input)})"
+                f"{tool_use['name']}({_format_args(tool_use['input'])})"
             )
-            yield _sse({"tool": tool_use.name})
+            yield _sse({"tool": tool_use["name"]})
 
             t_tool = time.time()
-            result = execute_tool(tool_use.name, tool_use.input)
+            result = execute_tool(tool_use["name"], tool_use["input"])
             tool_ms = int((time.time() - t_tool) * 1000)
 
-            summary = _summarize_result(tool_use.name, result)
-            logger.info(f"[{trace_id}] ✓ tool result: {tool_use.name} → {summary} ({tool_ms}ms)")
+            summary = _summarize_result(tool_use["name"], result)
+            logger.info(
+                f"[{trace_id}] ✓ tool result: {tool_use['name']} → {summary} ({tool_ms}ms)"
+            )
             if logger.isEnabledFor(logging.DEBUG):
                 payload = json.dumps(result, default=str)
                 if len(payload) > 1000:
@@ -287,78 +346,85 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
 
             tool_results.append({
                 "type": "tool_result",
-                "tool_use_id": tool_use.id,
+                "tool_use_id": tool_use["id"],
                 "content": json.dumps(result),
             })
 
-        # Feed tool results back as the next user message; loop to next round
         messages.append({"role": "user", "content": tool_results})
 
-    # ── Hit the round cap without a final answer ─────────────────────────
+    # ── Hit the round cap ─────────────────────────────────────────────────
     logger.warning(f"[{trace_id}] ⚠ hit MAX_ROUNDS={MAX_ROUNDS} without final answer")
-    yield _sse({"text": "I've explored the data, but I'm having trouble settling on an answer. Could you rephrase the question?"})
+    yield _sse({"text": "I've explored the data, but I'm having trouble settling on an answer. Could you rephrase?"})
     yield "data: [DONE]\n\n"
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SYNC variant — for the Fetch.ai uAgent (Chat Protocol is single-shot)
-# Same logging hooks, but returns one string instead of streaming.
+# SYNC variant — for the Fetch.ai uAgent
 # ════════════════════════════════════════════════════════════════════════════
 
 def get_atlas_answer(user_question: str) -> str:
-    """Sync version of the orchestrator — used by the Fetch.ai uAgent."""
+    """Sync version — used by the Fetch.ai uAgent (no streaming needed)."""
     trace_id = _short_id()
     t_start = time.time()
 
     q_preview = user_question if len(user_question) <= 120 else user_question[:117] + "..."
     logger.info(f"[{trace_id}] ▶ (sync) query received: {q_preview!r}")
 
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    messages: list[dict] = [{"role": "user", "content": user_question}]
-    total_tool_calls = 0
+    try:
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise RuntimeError("Missing ANTHROPIC_API_KEY env var.")
 
-    for round_num in range(1, MAX_ROUNDS + 1):
-        logger.info(f"[{trace_id}] ⤷ (sync) round {round_num} → claude")
+        client = anthropic.Anthropic(api_key=api_key)
+        messages: list[dict] = [{"role": "user", "content": user_question}]
+        total_tool_calls = 0
 
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=MAX_TOKENS,
-            system=ATLAS_SYSTEM_PROMPT,
-            tools=TOOL_DEFINITIONS,
-            messages=messages,
-        )
-        messages.append({"role": "assistant", "content": response.content})
+        for round_num in range(1, MAX_ROUNDS + 1):
+            logger.info(f"[{trace_id}] ⤷ (sync) round {round_num} → claude")
 
-        tool_uses = [block for block in response.content if block.type == "tool_use"]
-        if not tool_uses:
-            answer = "".join(b.text for b in response.content if b.type == "text")
-            total_ms = int((time.time() - t_start) * 1000)
-            logger.info(
-                f"[{trace_id}] ✎ (sync) final answer "
-                f"({len(answer)} chars, {round_num} rounds, {total_tool_calls} tools, {total_ms}ms)"
+            response = client.messages.create(
+                model=MODEL,
+                max_tokens=MAX_TOKENS,
+                system=ATLAS_SYSTEM_PROMPT,
+                tools=TOOL_DEFINITIONS,
+                messages=messages,
             )
-            return answer
+            messages.append({"role": "assistant", "content": response.content})
 
-        tool_results = []
-        for tool_use in tool_uses:
-            total_tool_calls += 1
-            logger.info(
-                f"[{trace_id}] ⚙  (sync) tool call: "
-                f"{tool_use.name}({_format_args(tool_use.input)})"
-            )
-            t_tool = time.time()
-            result = execute_tool(tool_use.name, tool_use.input)
-            tool_ms = int((time.time() - t_tool) * 1000)
-            logger.info(
-                f"[{trace_id}] ✓ (sync) tool result: "
-                f"{tool_use.name} → {_summarize_result(tool_use.name, result)} ({tool_ms}ms)"
-            )
-            tool_results.append({
-                "type": "tool_result",
-                "tool_use_id": tool_use.id,
-                "content": json.dumps(result),
-            })
-        messages.append({"role": "user", "content": tool_results})
+            tool_uses = [block for block in response.content if block.type == "tool_use"]
+            if not tool_uses:
+                answer = "".join(b.text for b in response.content if b.type == "text")
+                total_ms = int((time.time() - t_start) * 1000)
+                logger.info(
+                    f"[{trace_id}] ✎ (sync) final answer "
+                    f"({len(answer)} chars, {round_num} rounds, {total_tool_calls} tools, {total_ms}ms)"
+                )
+                return answer
 
-    logger.warning(f"[{trace_id}] ⚠ (sync) hit MAX_ROUNDS={MAX_ROUNDS} without final answer")
-    return "I've explored the data, but couldn't settle on an answer. Could you rephrase?"
+            tool_results = []
+            for tool_use in tool_uses:
+                total_tool_calls += 1
+                logger.info(
+                    f"[{trace_id}] ⚙  (sync) tool call: "
+                    f"{tool_use.name}({_format_args(tool_use.input)})"
+                )
+                t_tool = time.time()
+                result = execute_tool(tool_use.name, tool_use.input)
+                tool_ms = int((time.time() - t_tool) * 1000)
+                logger.info(
+                    f"[{trace_id}] ✓ (sync) tool result: "
+                    f"{tool_use.name} → {_summarize_result(tool_use.name, result)} ({tool_ms}ms)"
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_use.id,
+                    "content": json.dumps(result),
+                })
+            messages.append({"role": "user", "content": tool_results})
+
+        logger.warning(f"[{trace_id}] ⚠ (sync) hit MAX_ROUNDS={MAX_ROUNDS}")
+        return "I've explored the data, but couldn't settle on an answer. Could you rephrase?"
+
+    except BaseException as e:
+        _log_exception(trace_id, e, prefix="(sync) FATAL: ")
+        return f"Atlas hit an error: {type(e).__name__}: {str(e)[:200]}"
