@@ -34,8 +34,30 @@ from supabase import Client, create_client
 
 load_dotenv()
 
-# Reuse a single Supabase client (Vercel serverless reuses the warm container)
-_sb: Client = create_client(os.environ["SUPABASE_URL"], os.environ["SUPABASE_KEY"])
+# LAZY Supabase client. We initialize on first use rather than at import time,
+# so that:
+#   1. A missing env var doesn't crash the whole module import — which on
+#      Vercel manifests as a useless 500 with no logs (the function fails
+#      to even start up).
+#   2. Vercel's serverless cold start is faster (no DNS or TCP handshake
+#      at module load).
+# The client is cached for the lifetime of the warm container.
+_sb_client: Client | None = None
+
+
+def _sb() -> Client:
+    """Return a cached Supabase client, creating it on first call."""
+    global _sb_client
+    if _sb_client is None:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
+            raise RuntimeError(
+                "Missing SUPABASE_URL or SUPABASE_KEY env var. "
+                "Set both in Vercel → Project Settings → Environment Variables."
+            )
+        _sb_client = create_client(url, key)
+    return _sb_client
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -127,7 +149,7 @@ def filter_internships(
     # Use the dedicated RPC `tic_filter_internships` defined in schema.sql
     # (we'll add this RPC below). RPC keeps logic in Postgres so the network
     # round-trip is one call, and lets us define indexes on the underlying joins.
-    res = _sb.rpc(
+    res = _sb().rpc(
         "tic_filter_internships",
         {
             "p_university":    params.get("p_university"),
@@ -207,7 +229,7 @@ def compare_companies(
     if len(companies) < 2:
         return {"error": "compare_companies requires at least 2 companies"}
 
-    res = _sb.rpc(
+    res = _sb().rpc(
         "tic_compare_companies",
         {
             "p_companies": companies,
@@ -274,7 +296,7 @@ def find_similar_schools(
           ]
         }
     """
-    res = _sb.rpc(
+    res = _sb().rpc(
         "tic_find_similar_schools",
         {
             "p_reference_company": reference_company,

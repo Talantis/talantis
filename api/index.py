@@ -1,6 +1,14 @@
+"""
+Vercel entrypoint for the Talantis FastAPI backend.
+
+Vercel's rewrite in vercel.json sends every /api/* path here. FastAPI's
+internal router then dispatches to the correct endpoint based on the
+original path.
+"""
 import os
 import sys
 
+# Make sibling modules importable when running on Vercel
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, Query
@@ -13,6 +21,7 @@ from database import get_intern_data, get_universities
 
 app = FastAPI(title="Talantis API")
 
+# Open CORS — same-origin in production but useful for local dev / uAgent calls
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,7 +36,25 @@ class InsightRequest(BaseModel):
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Frontend data endpoints — used by the Recharts bar chart
+# Health check — useful for verifying the function is alive on Vercel
+# Hit https://<your-domain>/api/health to confirm the deploy works at all
+# ────────────────────────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+def health():
+    return {
+        "ok": True,
+        "service": "talantis-api",
+        "env_check": {
+            "SUPABASE_URL":      bool(os.environ.get("SUPABASE_URL")),
+            "SUPABASE_KEY":      bool(os.environ.get("SUPABASE_KEY")),
+            "ANTHROPIC_API_KEY": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        },
+    }
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Frontend data endpoints — used by the bar chart and university dropdown
 # ────────────────────────────────────────────────────────────────────────────
 
 @app.get("/api/universities")
@@ -41,29 +68,33 @@ def companies(university: str | None = Query(default=None)):
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Atlas — the Talent Intelligence Model
-# Uses the new tool-use orchestrator (atlas.py + tools.py)
+# Atlas — the streaming insights endpoint
+# Frontend POSTs JSON: {"query": "...", "university": "..."}
+# Server returns Server-Sent Events:
+#   data: {"text": "..."}    one token of narrative text
+#   data: {"tool": "name"}   tool-call notification
+#   data: [DONE]              end of stream
 # ────────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/insights")
 async def insights(body: InsightRequest):
-    """
-    The Atlas streaming endpoint. Frontend consumes this via EventSource:
-
-      const es = new EventSource('/api/insights', { method: 'POST', body: ... });
-      es.onmessage = (e) => { append(JSON.parse(e.data).text); };
-
-    Each event is one of:
-      { "text": "..." }    narrative chunk
-      { "tool": "name" }   tool-call notification (for UX/loading state)
-      [DONE]               end of stream
-    """
-    # Augment the user's question with optional university context
     question = body.query
     if body.university:
-        question = f"(Context: the user is currently filtered to {body.university}.) {question}"
+        question = (
+            f"(Context: the user is currently filtered to {body.university}.) "
+            f"{question}"
+        )
+
+    # Anti-buffering headers tell intermediate proxies (CDN, browser) to flush
+    # SSE chunks as they arrive instead of buffering the whole response.
+    headers = {
+        "Cache-Control":     "no-cache, no-transform",
+        "Connection":        "keep-alive",
+        "X-Accel-Buffering": "no",  # disables NGINX/Vercel proxy buffering
+    }
 
     return StreamingResponse(
         stream_atlas_answer(question),
         media_type="text/event-stream",
+        headers=headers,
     )
