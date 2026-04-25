@@ -73,7 +73,7 @@ export default function RootLayout({ children }) {
     <html lang="en" className={`${cormorant.variable} ${interTight.variable}`}>
       <body>
         {children}
-        <AtlasFAB href="/explore" /></body>
+        <AtlasFAB /></body>
     </html>
   );
 }

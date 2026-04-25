@@ -8,20 +8,18 @@ original path.
 import os
 import sys
 
-# Make sibling modules importable when running on Vercel
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from atlas import stream_atlas_answer
 from database import get_intern_data, get_universities
 
 app = FastAPI(title="Talantis API")
 
-# Open CORS — same-origin in production but useful for local dev / uAgent calls
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,14 +28,39 @@ app.add_middleware(
 )
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# REQUEST MODELS
+# ════════════════════════════════════════════════════════════════════════════
+
+class ChatTurn(BaseModel):
+    """One message in the conversation. role is 'user' or 'assistant'."""
+    role: str
+    content: str
+
+
 class InsightRequest(BaseModel):
+    """
+    Atlas insights request.
+
+    The frontend now sends the full conversation history on every turn —
+    Atlas itself is stateless. This keeps the architecture serverless-friendly
+    (no per-session storage) and lets the frontend persist transcripts in
+    localStorage if it wants to.
+
+    Fields:
+      query      — the new user message (the latest turn)
+      history    — prior conversation turns, oldest-first; empty for the first
+                   message. Only role + content text is needed; tool-use
+                   bookkeeping doesn't carry across turns.
+      university — optional UI filter context, prepended to the new query
+    """
     query: str
-    university: str | None = None  # optional context — Atlas can use or ignore
+    history: list[ChatTurn] = Field(default_factory=list)
+    university: str | None = None
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Health check — useful for verifying the function is alive on Vercel
-# Hit https://<your-domain>/api/health to confirm the deploy works at all
+# Health check
 # ────────────────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -54,7 +77,7 @@ def health():
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Frontend data endpoints — used by the bar chart and university dropdown
+# Frontend data endpoints
 # ────────────────────────────────────────────────────────────────────────────
 
 @app.get("/api/universities")
@@ -68,33 +91,28 @@ def companies(university: str | None = Query(default=None)):
 
 
 # ────────────────────────────────────────────────────────────────────────────
-# Atlas — the streaming insights endpoint
-# Frontend POSTs JSON: {"query": "...", "university": "..."}
-# Server returns Server-Sent Events:
-#   data: {"text": "..."}    one token of narrative text
-#   data: {"tool": "name"}   tool-call notification
-#   data: [DONE]              end of stream
+# Atlas — streaming insights endpoint with conversation history
 # ────────────────────────────────────────────────────────────────────────────
 
 @app.post("/api/insights")
 async def insights(body: InsightRequest):
-    question = body.query
-    if body.university:
-        question = (
-            f"(Context: the user is currently filtered to {body.university}.) "
-            f"{question}"
-        )
+    # Atlas reasons from the conversation itself, not from the bar chart's
+    # university dropdown. The dropdown is a separate UI filter for the
+    # chart — feeding it into Atlas would constrain the agent unnecessarily
+    # ("filtered to UCLA" overriding a user's "what about Berkeley?" follow-up).
+    latest = body.query
 
-    # Anti-buffering headers tell intermediate proxies (CDN, browser) to flush
-    # SSE chunks as they arrive instead of buffering the whole response.
+    # Convert ChatTurn → plain dict for the orchestrator
+    history = [{"role": t.role, "content": t.content} for t in body.history]
+
     headers = {
         "Cache-Control":     "no-cache, no-transform",
         "Connection":        "keep-alive",
-        "X-Accel-Buffering": "no",  # disables NGINX/Vercel proxy buffering
+        "X-Accel-Buffering": "no",
     }
 
     return StreamingResponse(
-        stream_atlas_answer(question),
+        stream_atlas_answer(latest, history=history),
         media_type="text/event-stream",
         headers=headers,
     )

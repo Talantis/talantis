@@ -5,7 +5,6 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import InternChart from "@/components/chart/InternChart";
 import UniversityFilter from "@/components/chart/UniversityFilter";
-import AskAtlas from "@/components/atlas/AskAtlas";
 
 export default function ExplorePage() {
   const [university, setUniversity] = useState("");
@@ -23,7 +22,6 @@ export default function ExplorePage() {
     fetch("/api/universities")
       .then((r) => r.json())
       .then((data) => {
-        // The backend returns ["UCLA", "Stanford", ...] — a flat string array
         if (Array.isArray(data)) {
           setUniversityList(data);
         }
@@ -46,8 +44,6 @@ export default function ExplorePage() {
         return r.json();
       })
       .then((data) => {
-        // Backend returns rows like { company, logo_url, industry, university, intern_count }
-        // The chart wants { company, count }. Take the top 12 for visual clarity.
         const rows = (data || [])
           .slice(0, 12)
           .map((r) => ({
@@ -88,8 +84,11 @@ export default function ExplorePage() {
 
         {/* ============================================================
             FILTER + CHART
+            The dedicated "Ask Atlas" section is gone — Atlas now lives
+            in the floating button (bottom-right corner), accessible
+            from every page.
             ============================================================ */}
-        <section className="max-w-7xl mx-auto px-6 md:px-12 pb-20">
+        <section className="max-w-7xl mx-auto px-6 md:px-12 pb-32">
           <div className="mb-8 flex items-center gap-6">
             <span className="font-display italic text-xs tracking-wider-md uppercase text-gold">
               Filter by
@@ -112,22 +111,6 @@ export default function ExplorePage() {
               ? `Internships from ${university} · Summer 2024`
               : "Top hiring companies · Summer 2024"}
           </div>
-        </section>
-
-        {/* ============================================================
-            ASK ATLAS
-            Pass the selected university so Atlas has context
-            ============================================================ */}
-        <section className="max-w-4xl mx-auto px-6 md:px-12 pb-32">
-          <div className="font-display italic text-sm tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
-            <span className="w-10 h-px bg-gold" />
-            <span>The Guide</span>
-          </div>
-          <h2 className="font-display text-4xl md:text-5xl mb-10">
-            Ask <em>Atlas</em>.
-          </h2>
-
-          <AskAtlas university={university || null} />
         </section>
       </main>
 
