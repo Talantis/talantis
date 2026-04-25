@@ -58,3 +58,11 @@ CLAUDE.md
 
 # SQLite (replaced by Supabase)
 *.db
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
