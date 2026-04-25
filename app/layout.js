@@ -41,7 +41,6 @@ export const metadata = {
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   manifest: "/site.webmanifest",
-  themeColor: "#0a1628",
   openGraph: {
     title: "Talantis — A legendary island of talents",
     description:
@@ -58,6 +57,13 @@ export const metadata = {
     description: "A legendary island of talents.",
     images: ["/og-image.png"],
   },
+};
+
+// ============================================================
+// VIEWPORT — themeColor lives here in Next 14+
+// ============================================================
+export const viewport = {
+  themeColor: "#0a1628",
 };
 
 export default function RootLayout({ children }) {
