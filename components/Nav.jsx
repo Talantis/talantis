@@ -23,13 +23,13 @@ export default function Nav() {
         <div className="flex items-center gap-8">
           <Link
             href="/explore"
-            className="font-display italic text-sm tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             Explore
           </Link>
           <Link
             href="/#atlas"
-            className="font-display italic text-sm tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-display font-bold italic text-sm tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             Ask Atlas
           </Link>

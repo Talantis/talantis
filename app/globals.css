@@ -115,3 +115,13 @@ em {
 .recharts-tooltip-wrapper {
   outline: none;
 }
+
+/* Animations */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.4); }
+}
+.animate-breathe {
+  animation: breathe 2.5s ease-in-out infinite;
+  display: inline-block;
+}

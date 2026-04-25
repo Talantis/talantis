@@ -15,8 +15,8 @@ export default function HomePage() {
             HERO — the mythic opening. Pitch line + primary mark.
             ============================================================ */}
         <section className="min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-20">
-          <div className="font-display italic text-sm tracking-wider-lg uppercase text-gold mb-10 flex items-center gap-4">
-            <span>✦</span>
+          <div className="font-body font-bold text-sm tracking-wider-lg uppercase text-gold mb-10 flex items-center gap-4">
+            <span className="inline-block animate-breathe">✦</span>
             <span>A legendary island of talents</span>
           </div>
 
@@ -32,14 +32,19 @@ export default function HomePage() {
           <div className="flex flex-wrap gap-6">
             <Link
               href="/explore"
-              className="inline-flex items-center gap-3 px-8 py-4 bg-gold text-navy font-body font-medium hover:bg-gold-light transition-colors group"
+              style={ {borderRadius: "6px"}}
+              className="inline-flex items-center gap-3 px-8 py-4 font-body font-medium transition-all duration-300 group
+              bg-gold text-navy
+              hover:bg-gradient-to-r hover:from-gold hover:to-[#5bc4c0]
+              hover:shadow-[0_0_24px_4px_rgba(212,165,72,0.8)]"
             >
               <span>Enter the island</span>
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
               href="#atlas"
-              className="inline-flex items-center gap-3 px-8 py-4 border border-line text-cream font-body font-medium hover:border-gold hover:text-gold transition-colors"
+              style={ {borderRadius: "6px"}}
+              className="inline-flex items-center gap-3 px-8 py-4 border border-line text-cream font-body font-medium hover:border-[#5bc4c0] hover:text-[#5bc4c0] transition-colors"
             >
               <span>Ask Atlas</span>
             </Link>
@@ -53,7 +58,7 @@ export default function HomePage() {
             THE CAST — Talantis × Atlas side by side
             ============================================================ */}
         <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-32">
-          <div className="font-display italic text-sm tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
+          <div className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
             <span className="w-10 h-px bg-gold" />
             <span>The Cast</span>
           </div>
@@ -66,7 +71,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 gap-px bg-line border border-line">
             {/* Talantis */}
             <div className="bg-navy-soft p-12 flex flex-col items-center text-center gap-6">
-              <div className="font-display italic text-xs tracking-wider-lg uppercase text-gold">
+              <div className="font-body italic text-sm tracking-wider-lg uppercase text-gold">
                 — The Island —
               </div>
               <TalantisLogo size={160} />
@@ -80,7 +85,7 @@ export default function HomePage() {
 
             {/* Atlas */}
             <div id="atlas" className="bg-navy-soft p-12 flex flex-col items-center text-center gap-6">
-              <div className="font-display italic text-xs tracking-wider-lg uppercase text-gold">
+              <div className="font-body italic text-sm tracking-wider-lg uppercase text-gold">
                 — The Guide —
               </div>
               <AtlasLogo size={160} />
@@ -98,7 +103,7 @@ export default function HomePage() {
             THE STORY — brand thesis
             ============================================================ */}
         <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-32">
-          <div className="font-display italic text-sm tracking-wider-md uppercase text-gold mb-10">
+          <div className="font-body italic text-md tracking-wider-md uppercase text-gold mb-10">
             § 01 · The Story
           </div>
 

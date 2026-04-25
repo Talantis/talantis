@@ -13,7 +13,7 @@ export default function Footer() {
             T<em className="italic">a</em>lantis
           </div>
         </div>
-        <div className="font-display italic text-xs tracking-wider-md uppercase text-cream-dim text-right">
+        <div className="font-body text-xs tracking-wider-sm uppercase text-cream-dim text-right">
           A legendary island of talents<br />
           LA Hacks · Spring 2026
         </div>
