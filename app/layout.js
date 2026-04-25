@@ -1,4 +1,6 @@
 import { Cormorant_Garamond, Inter_Tight } from "next/font/google";
+import AtlasFAB from "/components/atlas/AtlasFAB";
+
 import "./globals.css";
 
 // ============================================================
@@ -69,7 +71,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${cormorant.variable} ${interTight.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <AtlasFAB href="/explore" /></body>
     </html>
   );
 }
