@@ -212,3 +212,254 @@ begin
   refresh materialized view mv_university_counts_by_company;
 end;
 $$;
+
+-- ============================================================
+-- TALANTIS · Talent Intelligence Core SQL Functions
+-- ============================================================
+-- Append this to the end of schema.sql.
+-- Three Postgres functions back the three Python tools:
+--   tic_filter_internships    →  filter_internships()
+--   tic_compare_companies     →  compare_companies()
+--   tic_find_similar_schools  →  find_similar_schools()
+--
+-- Why SQL functions instead of Python queries?
+--   1. ONE network round-trip to Supabase per tool call (vs many)
+--   2. Postgres can use indexes and materialized views directly
+--   3. Logic is enforceable at the database layer
+-- ============================================================
+
+drop function if exists tic_filter_internships(text, text, text, text, int, text, int) cascade;
+drop function if exists tic_compare_companies(text[], int, int) cascade;
+drop function if exists tic_find_similar_schools(text, text[], int, int) cascade;
+
+-- ============================================================
+-- 1. tic_filter_internships
+-- Count internships with optional filters, grouped by a dimension.
+-- ============================================================
+
+create or replace function tic_filter_internships(
+  p_university    text default null,
+  p_company       text default null,
+  p_industry      text default null,
+  p_role_category text default null,
+  p_year          int  default 2024,
+  p_group_by      text default 'company',
+  p_limit         int  default 15
+)
+returns table(key text, count bigint)
+language plpgsql security definer as $$
+begin
+  -- Use dynamic SQL because the GROUP BY column varies.
+  -- Safe because p_group_by is checked against a whitelist below.
+  if p_group_by not in ('company', 'university', 'industry', 'role_category') then
+    p_group_by := 'company';
+  end if;
+
+  return query execute format($f$
+    select
+      case %1$L
+        when 'company'       then c.display_name
+        when 'university'    then u.display_name
+        when 'industry'      then c.industry_slug
+        when 'role_category' then i.role_category
+      end as key,
+      count(*)::bigint as count
+    from internships i
+    join companies    c on c.slug = i.company_slug
+    join universities u on u.slug = i.university_slug
+    where i.year = %2$L
+      and (%3$L is null or u.display_name ilike %3$L or u.slug = lower(replace(%3$L, ' ', '-')))
+      and (%4$L is null or c.display_name ilike %4$L or c.slug = lower(replace(%4$L, ' ', '-')))
+      and (%5$L is null or c.industry_slug = %5$L)
+      and (%6$L is null or i.role_category = %6$L)
+    group by key
+    order by count desc
+    limit %7$L
+  $f$, p_group_by, p_year, p_university, p_company, p_industry, p_role_category, p_limit);
+end;
+$$;
+
+-- ============================================================
+-- 2. tic_compare_companies
+-- Compare 2+ companies' top feeder universities side-by-side.
+-- Returns JSON because the column shape is dynamic.
+-- ============================================================
+
+create or replace function tic_compare_companies(
+  p_companies text[],
+  p_year      int default 2024,
+  p_top_n     int default 10
+)
+returns json
+language plpgsql security definer as $$
+declare
+  result json;
+begin
+  with normalized as (
+    -- Resolve company display names OR slugs to canonical display_name
+    select c.display_name as company
+    from companies c
+    where c.display_name = any(p_companies)
+       or c.slug = any(array(select lower(replace(s, ' ', '-')) from unnest(p_companies) s))
+  ),
+  per_uni_company as (
+    -- intern counts per (company, university) for the requested companies
+    select
+      u.display_name as university,
+      c.display_name as company,
+      count(*)::int  as cnt
+    from internships i
+    join companies    c on c.slug = i.company_slug
+    join universities u on u.slug = i.university_slug
+    where i.year = p_year
+      and c.display_name in (select company from normalized)
+    group by u.display_name, c.display_name
+  ),
+  uni_totals as (
+    -- Sum intern counts across the requested companies, per university
+    select university, sum(cnt) as total
+    from per_uni_company
+    group by university
+    order by total desc
+    limit p_top_n
+  ),
+  pivot as (
+    -- For each top university, build a JSON object with one key per company
+    select
+      ut.university,
+      json_object_agg(coalesce(p.company, ''), coalesce(p.cnt, 0))
+        filter (where p.company is not null) as company_counts
+    from uni_totals ut
+    left join per_uni_company p on p.university = ut.university
+    group by ut.university
+    order by ut.university
+  ),
+  per_company_summary as (
+    select
+      company,
+      json_build_object(
+        'total', sum(cnt),
+        'unique_universities', count(distinct university)
+      ) as summary
+    from per_uni_company
+    group by company
+  )
+  select json_build_object(
+    'year', p_year,
+    'companies', (select array_agg(company) from normalized),
+    'comparison', (
+      select coalesce(json_agg(json_build_object(
+        'university', p.university
+      ) || p.company_counts), '[]'::json)
+      from pivot p
+    ),
+    'summary', (
+      select coalesce(json_object_agg(company, summary), '{}'::json)
+      from per_company_summary
+    )
+  ) into result;
+  return result;
+end;
+$$;
+
+-- ============================================================
+-- 3. tic_find_similar_schools  ★
+-- The signature insight. Find schools peers recruit from but
+-- the reference company does not.
+-- ============================================================
+
+create or replace function tic_find_similar_schools(
+  p_reference_company text,
+  p_peer_companies    text[],
+  p_year              int default 2024,
+  p_limit             int default 8
+)
+returns json
+language plpgsql security definer as $$
+declare
+  result json;
+begin
+  with ref_company as (
+    select c.slug, c.display_name
+    from companies c
+    where c.display_name ilike p_reference_company
+       or c.slug = lower(replace(p_reference_company, ' ', '-'))
+    limit 1
+  ),
+  peer_set as (
+    select c.slug, c.display_name
+    from companies c
+    where c.display_name = any(p_peer_companies)
+       or c.slug = any(array(select lower(replace(s, ' ', '-')) from unnest(p_peer_companies) s))
+  ),
+  peer_signal as (
+    -- How many interns from each university go to the peer group?
+    select
+      u.display_name as university,
+      sum(cnt)::int  as peer_count
+    from (
+      select i.university_slug, count(*)::int as cnt
+      from internships i
+      where i.year = p_year
+        and i.company_slug in (select slug from peer_set)
+      group by i.university_slug
+    ) p
+    join universities u on u.slug = p.university_slug
+    group by u.display_name
+  ),
+  ref_signal as (
+    -- How many interns from each university go to the reference?
+    select
+      u.display_name as university,
+      count(*)::int  as ref_count
+    from internships i
+    join universities u on u.slug = i.university_slug
+    where i.year = p_year
+      and i.company_slug = (select slug from ref_company)
+    group by u.display_name
+  ),
+  gaps as (
+    -- For each university with non-zero peer signal, compute the gap
+    select
+      ps.university,
+      ps.peer_count,
+      coalesce(rs.ref_count, 0) as ref_count,
+      greatest(ps.peer_count - coalesce(rs.ref_count, 0), 0) as gap
+    from peer_signal ps
+    left join ref_signal rs on rs.university = ps.university
+  ),
+  ranked as (
+    select
+      university,
+      peer_count,
+      ref_count,
+      gap,
+      case
+        when ref_count = 0 and peer_count >= 3 then 'Peers hire heavily; you don''t recruit here.'
+        when ref_count = 0                       then 'Peers have a presence; you don''t.'
+        when gap >= 5                             then 'You under-recruit relative to peers.'
+        else 'Pipeline gap.'
+      end as interpretation
+    from gaps
+    where gap > 0
+    order by gap desc, peer_count desc
+    limit p_limit
+  )
+  select json_build_object(
+    'reference_company', (select display_name from ref_company),
+    'peer_companies',    (select array_agg(display_name) from peer_set),
+    'year',              p_year,
+    'hidden_pipelines',  coalesce((select json_agg(row_to_json(r)) from ranked r), '[]'::json)
+  ) into result;
+  return result;
+end;
+$$;
+
+-- ============================================================
+-- Grant execute on all three functions to the anon role
+-- (Supabase's default role for service-key calls)
+-- ============================================================
+
+grant execute on function tic_filter_internships(text, text, text, text, int, text, int) to anon, authenticated;
+grant execute on function tic_compare_companies(text[], int, int)                          to anon, authenticated;
+grant execute on function tic_find_similar_schools(text, text[], int, int)                 to anon, authenticated;

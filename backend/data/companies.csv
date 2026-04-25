@@ -1,0 +1,55 @@
+slug,display_name,industry_slug,logo_url,hq_location,size_bucket
+google,Google,big-tech,https://logo.clearbit.com/google.com,"Mountain View, CA",big-tech
+meta,Meta,big-tech,https://logo.clearbit.com/meta.com,"Menlo Park, CA",big-tech
+apple,Apple,big-tech,https://logo.clearbit.com/apple.com,"Cupertino, CA",big-tech
+microsoft,Microsoft,big-tech,https://logo.clearbit.com/microsoft.com,"Redmond, WA",big-tech
+amazon,Amazon,e-commerce,https://logo.clearbit.com/amazon.com,"Seattle, WA",big-tech
+netflix,Netflix,entertainment,https://logo.clearbit.com/netflix.com,"Los Gatos, CA",big-tech
+nvidia,Nvidia,semiconductors,https://logo.clearbit.com/nvidia.com,"Santa Clara, CA",big-tech
+tesla,Tesla,mobility,https://logo.clearbit.com/tesla.com,"Palo Alto, CA",big-tech
+anthropic,Anthropic,ai-research,https://logo.clearbit.com/anthropic.com,"San Francisco, CA",mid-market
+openai,OpenAI,ai-research,https://logo.clearbit.com/openai.com,"San Francisco, CA",mid-market
+deepmind,DeepMind,ai-research,https://logo.clearbit.com/deepmind.com,"London, UK",mid-market
+scale-ai,Scale AI,ai-research,https://logo.clearbit.com/scale.com,"San Francisco, CA",mid-market
+stripe,Stripe,fintech,https://logo.clearbit.com/stripe.com,"San Francisco, CA",mid-market
+plaid,Plaid,fintech,https://logo.clearbit.com/plaid.com,"San Francisco, CA",mid-market
+brex,Brex,fintech,https://logo.clearbit.com/brex.com,"San Francisco, CA",mid-market
+ramp,Ramp,fintech,https://logo.clearbit.com/ramp.com,"New York, NY",startup
+robinhood,Robinhood,fintech,https://logo.clearbit.com/robinhood.com,"Menlo Park, CA",mid-market
+coinbase,Coinbase,fintech,https://logo.clearbit.com/coinbase.com,Remote,mid-market
+citadel,Citadel,hft-trading,https://logo.clearbit.com/citadel.com,"Chicago, IL",enterprise
+jane-street,Jane Street,hft-trading,https://logo.clearbit.com/janestreet.com,"New York, NY",enterprise
+two-sigma,Two Sigma,hft-trading,https://logo.clearbit.com/twosigma.com,"New York, NY",enterprise
+hudson-river,Hudson River Trading,hft-trading,https://logo.clearbit.com/hudson-trading.com,"New York, NY",mid-market
+de-shaw,D.E. Shaw,hft-trading,https://logo.clearbit.com/deshaw.com,"New York, NY",enterprise
+notion,Notion,startup-tech,https://logo.clearbit.com/notion.so,"San Francisco, CA",startup
+vercel,Vercel,startup-tech,https://logo.clearbit.com/vercel.com,"San Francisco, CA",startup
+linear,Linear,startup-tech,https://logo.clearbit.com/linear.app,"San Francisco, CA",startup
+airbnb,Airbnb,mobility,https://logo.clearbit.com/airbnb.com,"San Francisco, CA",enterprise
+uber,Uber,mobility,https://logo.clearbit.com/uber.com,"San Francisco, CA",enterprise
+lyft,Lyft,mobility,https://logo.clearbit.com/lyft.com,"San Francisco, CA",mid-market
+doordash,DoorDash,e-commerce,https://logo.clearbit.com/doordash.com,"San Francisco, CA",mid-market
+instacart,Instacart,e-commerce,https://logo.clearbit.com/instacart.com,"San Francisco, CA",mid-market
+salesforce,Salesforce,enterprise-saas,https://logo.clearbit.com/salesforce.com,"San Francisco, CA",big-tech
+databricks,Databricks,data-analytics,https://logo.clearbit.com/databricks.com,"San Francisco, CA",enterprise
+snowflake,Snowflake,data-analytics,https://logo.clearbit.com/snowflake.com,"Bozeman, MT",enterprise
+palantir,Palantir,data-analytics,https://logo.clearbit.com/palantir.com,"Denver, CO",enterprise
+atlassian,Atlassian,enterprise-saas,https://logo.clearbit.com/atlassian.com,"San Francisco, CA",enterprise
+snap,Snap,social,https://logo.clearbit.com/snap.com,"Santa Monica, CA",mid-market
+linkedin,LinkedIn,social,https://logo.clearbit.com/linkedin.com,"Sunnyvale, CA",big-tech
+pinterest,Pinterest,social,https://logo.clearbit.com/pinterest.com,"San Francisco, CA",mid-market
+tiktok,TikTok,social,https://logo.clearbit.com/tiktok.com,"Culver City, CA",big-tech
+discord,Discord,social,https://logo.clearbit.com/discord.com,"San Francisco, CA",mid-market
+adobe,Adobe,creative-tools,https://logo.clearbit.com/adobe.com,"San Jose, CA",big-tech
+figma,Figma,creative-tools,https://logo.clearbit.com/figma.com,"San Francisco, CA",mid-market
+canva,Canva,creative-tools,https://logo.clearbit.com/canva.com,"Sydney, AU",mid-market
+spacex,SpaceX,aerospace,https://logo.clearbit.com/spacex.com,"Hawthorne, CA",enterprise
+anduril,Anduril,aerospace,https://logo.clearbit.com/anduril.com,"Costa Mesa, CA",enterprise
+blue-origin,Blue Origin,aerospace,https://logo.clearbit.com/blueorigin.com,"Kent, WA",enterprise
+roblox,Roblox,entertainment,https://logo.clearbit.com/roblox.com,"San Mateo, CA",mid-market
+riot-games,Riot Games,entertainment,https://logo.clearbit.com/riotgames.com,"Los Angeles, CA",mid-market
+tempus,Tempus AI,biotech,https://logo.clearbit.com/tempus.com,"Chicago, IL",mid-market
+benchling,Benchling,biotech,https://logo.clearbit.com/benchling.com,"San Francisco, CA",mid-market
+mckinsey,McKinsey,consulting,https://logo.clearbit.com/mckinsey.com,"New York, NY",enterprise
+bcg,BCG,consulting,https://logo.clearbit.com/bcg.com,"Boston, MA",enterprise
+bain,Bain,consulting,https://logo.clearbit.com/bain.com,"Boston, MA",enterprise

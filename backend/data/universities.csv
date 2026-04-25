@@ -1,0 +1,32 @@
+slug,display_name,region,tier
+stanford,Stanford,West Coast,top-tier
+uc-berkeley,UC Berkeley,West Coast,top-tier
+mit,MIT,Northeast,top-tier
+carnegie-mellon,Carnegie Mellon,Mid-Atlantic,top-tier
+caltech,Caltech,West Coast,top-tier
+harvard,Harvard,Northeast,top-tier
+princeton,Princeton,Northeast,top-tier
+cornell,Cornell,Northeast,top-tier
+columbia,Columbia,Northeast,top-tier
+yale,Yale,Northeast,top-tier
+ucla,UCLA,West Coast,strong
+usc,USC,West Coast,strong
+uc-san-diego,UC San Diego,West Coast,strong
+uw-seattle,UW Seattle,Pacific Northwest,strong
+uiuc,UIUC,Midwest,strong
+umich,Michigan,Midwest,strong
+georgia-tech,Georgia Tech,Southeast,strong
+ut-austin,UT Austin,South,strong
+upenn,UPenn,Northeast,strong
+nyu,NYU,Northeast,strong
+uwaterloo,Waterloo,Canada,strong
+brown,Brown,Northeast,strong
+duke,Duke,Southeast,strong
+purdue,Purdue,Midwest,emerging
+uc-davis,UC Davis,West Coast,emerging
+uc-irvine,UC Irvine,West Coast,emerging
+northeastern,Northeastern,Northeast,emerging
+rutgers,Rutgers,Northeast,emerging
+u-toronto,U of Toronto,Canada,emerging
+ubc,UBC,Canada,emerging
+u-maryland,U of Maryland,Mid-Atlantic,emerging
