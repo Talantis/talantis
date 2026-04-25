@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   TALANTIS · Global Styles
+   All brand tokens live here. Components read them via Tailwind.
+   ============================================================ */
+
+:root {
+  /* Primary palette */
+  --navy: #0a1628;
+  --navy-soft: #0f1f3a;
+  --navy-deep: #050b18;
+  --gold: #d4a548;
+  --gold-deep: #a67c2e;
+  --gold-light: #e3b659;
+  --cream: #f5ecd7;
+  --cream-dim: #c9b88a;
+  --aqua: #4fb3bf;
+  --aqua-deep: #1e5a6b;
+
+  /* Functional */
+  --line: #2a3a5c;
+  --line-soft: #1a2640;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--navy);
+  color: var(--cream);
+  font-family: var(--font-inter-tight), system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   NOISE OVERLAY — the signature brand texture
+   A subtle grain layer that gives every surface depth.
+   ============================================================ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.25'/%3E%3C/svg%3E");
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+/* Ensure content sits above the noise */
+main, header, footer, nav {
+  position: relative;
+  z-index: 2;
+}
+
+/* ============================================================
+   TYPOGRAPHY DEFAULTS
+   Display = Cormorant Garamond. Body = Inter Tight.
+   ============================================================ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-cormorant), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+em {
+  color: var(--gold);
+  font-style: italic;
+}
+
+/* ============================================================
+   SELECTION — match the brand
+   ============================================================ */
+::selection {
+  background: var(--gold);
+  color: var(--navy);
+}
+
+/* ============================================================
+   FOCUS — keyboard-accessible, on-brand
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* ============================================================
+   RECHARTS OVERRIDES — match brand palette
+   (charts render with our tokens, not Recharts defaults)
+   ============================================================ */
+.recharts-cartesian-axis-line,
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--line);
+}
+
+.recharts-cartesian-axis-tick-value {
+  fill: var(--cream-dim);
+  font-family: var(--font-inter-tight), sans-serif;
+  font-size: 12px;
+}
+
+.recharts-tooltip-wrapper {
+  outline: none;
+}
