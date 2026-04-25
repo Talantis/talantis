@@ -1,10 +1,10 @@
 """
-Atlas Orchestrator
-==================
+Atlas Orchestrator — true token streaming
+==========================================
 
 The agent loop. Takes a user question, runs a back-and-forth conversation
-with Claude where Claude can call tools, and finally streams a narrative
-answer to the user.
+with Claude where Claude can call tools, then streams the final narrative
+answer to the user TOKEN BY TOKEN.
 
 The flow:
 
@@ -12,41 +12,37 @@ The flow:
         │
         ▼
    ┌─────────────────────────────────────┐
-   │  Round 1: Claude reads the question │
-   │  Decides:  "I need filter_internships(university='UCLA', company='Stripe')" │
+   │  Stream round 1 from Claude         │
+   │  · capture tool_use blocks          │
+   │  · stream text deltas to client     │
    └──────┬──────────────────────────────┘
           │
           ▼
    ┌─────────────────────────────────────┐
-   │  We execute the tool against        │
-   │  Postgres. Returns: {"count": 9}    │
-   └──────┬──────────────────────────────┘
-          │
-          ▼
-   ┌─────────────────────────────────────┐
-   │  Round 2: Claude sees the result,   │
-   │  may call another tool OR write     │
-   │  the final narrative answer         │
-   └──────┬──────────────────────────────┘
-          │
-          ▼
-        user sees streaming answer
+   │  If tool calls were made:           │
+   │  · execute each against Postgres    │
+   │  · feed results back, loop          │
+   │  Otherwise:                         │
+   │  · we already streamed the answer   │
+   └─────────────────────────────────────┘
 
-Most queries take 1-2 rounds. We cap at 5 to prevent infinite loops.
+This uses anthropic.AsyncAnthropic.messages.stream() which yields token
+deltas as they arrive from Claude's API. The frontend sees text appear
+character-by-character, exactly like ChatGPT.
 
 LOGGING
 -------
 Every tool call is logged to stdout in a structured format that Vercel's
-Logs tab automatically captures. Example output for one query:
+Logs tab automatically captures. Example:
 
   [atlas] ▶ query received: "How many UCLA students interned at Stripe?"
-  [atlas] ⤷ round 1 → claude
+  [atlas] ⤷ round 1 → claude (streaming)
   [atlas] ⚙  tool call: filter_internships(university='UCLA', company='Stripe')
   [atlas] ✓ tool result: filter_internships → 1 row, total_internships=3 (42ms)
-  [atlas] ⤷ round 2 → claude
+  [atlas] ⤷ round 2 → claude (streaming)
   [atlas] ✎ final answer (87 chars, 2 rounds, 312ms total)
 
-Set LOG_LEVEL=DEBUG in your env to also see the full tool result payloads.
+Set LOG_LEVEL=DEBUG to also see the full tool result payloads.
 """
 
 from __future__ import annotations
@@ -65,7 +61,6 @@ from tools import TOOL_DEFINITIONS, execute_tool
 
 # ════════════════════════════════════════════════════════════════════════════
 # LOGGING SETUP
-# Print to stdout so Vercel's Logs tab and local uvicorn both capture it.
 # ════════════════════════════════════════════════════════════════════════════
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
@@ -73,12 +68,11 @@ LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 logger = logging.getLogger("atlas")
 logger.setLevel(LOG_LEVEL)
 
-# Avoid duplicate handlers if module is reimported (Vercel hot-reload, tests, etc.)
 if not logger.handlers:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter("[%(name)s] %(message)s"))
     logger.addHandler(handler)
-    logger.propagate = False  # don't double-print via the root logger
+    logger.propagate = False
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -111,6 +105,14 @@ GUIDELINES:
   6. If the user's question is ambiguous, pick the most likely interpretation and answer. \
      Don't ask clarifying questions unless the question is truly impossible to interpret.
 
+FORMATTING:
+  - Use plain prose. No Markdown bold/italics, no asterisks for emphasis, no bullet \
+    characters at the start of lines. The frontend renders Markdown, but heavy \
+    formatting clutters Atlas's mythic voice.
+  - Short paragraphs separated by a blank line are fine.
+  - You may use simple bullets (one item per line, starting with "- ") if you must \
+    list 3+ items, but prefer prose.
+
 You are a guide, not a salesman.\
 """
 
@@ -120,12 +122,10 @@ You are a guide, not a salesman.\
 # ════════════════════════════════════════════════════════════════════════════
 
 def _short_id() -> str:
-    """8-char trace ID so you can grep one query through the logs."""
     return uuid.uuid4().hex[:8]
 
 
 def _format_args(args: dict) -> str:
-    """Pretty-print tool args inline: filter_internships(university='UCLA', company='Stripe')"""
     parts = []
     for k, v in args.items():
         if isinstance(v, str):
@@ -138,7 +138,6 @@ def _format_args(args: dict) -> str:
 
 
 def _summarize_result(tool_name: str, result: dict) -> str:
-    """One-line summary of what a tool returned. Custom per tool for readability."""
     if "error" in result:
         return f"ERROR: {result['error']}"
 
@@ -164,24 +163,32 @@ def _summarize_result(tool_name: str, result: dict) -> str:
     return f"keys={list(result.keys())}"
 
 
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
+
+
 # ════════════════════════════════════════════════════════════════════════════
-# ASYNC GENERATOR — yields SSE-formatted strings for FastAPI StreamingResponse
+# MAIN STREAMING GENERATOR
+# Each round uses messages.stream() so the frontend sees tokens as they arrive.
 # ════════════════════════════════════════════════════════════════════════════
 
 async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
     """
-    Run the Atlas tool-use loop and stream the final narrative answer to the
-    client as Server-Sent Events.
+    Run the Atlas tool-use loop with REAL token-by-token streaming.
 
-    Yields:
-        "data: {\"text\": \"chunk\"}\\n\\n"   for narrative text chunks
-        "data: {\"tool\": \"name\"}\\n\\n"   for tool-call notifications
-        "data: [DONE]\\n\\n"                  to signal end of stream
+    For each round we open a streaming connection to Claude. Two kinds of
+    blocks come through:
+      · text — yield each delta to the client immediately
+      · tool_use — accumulate, then execute after the round completes
+
+    Yields (Server-Sent Events):
+        {"text": "chunk"}     a token of narrative text
+        {"tool": "name"}      tool call notification (UX/loading state)
+        [DONE]                end of stream
     """
     trace_id = _short_id()
     t_start = time.time()
 
-    # Truncate question for log readability — full question still sent to Claude
     q_preview = user_question if len(user_question) <= 120 else user_question[:117] + "..."
     logger.info(f"[{trace_id}] ▶ query received: {q_preview!r}")
 
@@ -190,48 +197,75 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
     total_tool_calls = 0
 
     for round_num in range(1, MAX_ROUNDS + 1):
-        logger.info(f"[{trace_id}] ⤷ round {round_num} → claude")
+        logger.info(f"[{trace_id}] ⤷ round {round_num} → claude (streaming)")
         t_round = time.time()
 
-        response = await client.messages.create(
+        # Open a streaming connection. The async with block manages the network
+        # connection lifecycle; we iterate events inside it.
+        tool_uses_in_round: list[dict] = []
+        text_buffer = ""  # accumulated text for the assistant message in history
+
+        async with client.messages.stream(
             model=MODEL,
             max_tokens=MAX_TOKENS,
             system=ATLAS_SYSTEM_PROMPT,
             tools=TOOL_DEFINITIONS,
             messages=messages,
-        )
+        ) as stream:
+            # Iterate raw events so we can handle text deltas AND tool_use blocks.
+            # The .text_stream helper only yields text — we need both.
+            async for event in stream:
+                etype = event.type
+
+                if etype == "content_block_delta":
+                    # A piece of a content block has arrived
+                    delta = event.delta
+                    if delta.type == "text_delta":
+                        # ── TOKEN! Stream it to the client immediately ─────
+                        yield _sse({"text": delta.text})
+                        text_buffer += delta.text
+                    # tool_use blocks come as "input_json_delta" but we read
+                    # the full input from the final_message at the end —
+                    # streaming partial JSON to the client isn't useful.
+
+                elif etype == "content_block_stop":
+                    # A full content block has completed. If it was a tool_use
+                    # block, capture the full input from the final message later.
+                    pass
+
+            # When the stream completes, get the consolidated final message
+            final = await stream.get_final_message()
+
         round_ms = int((time.time() - t_round) * 1000)
         logger.debug(
-            f"[{trace_id}]   stop_reason={response.stop_reason} "
-            f"input_tokens={response.usage.input_tokens} "
-            f"output_tokens={response.usage.output_tokens} "
+            f"[{trace_id}]   stop_reason={final.stop_reason} "
+            f"in_tokens={final.usage.input_tokens} "
+            f"out_tokens={final.usage.output_tokens} "
             f"({round_ms}ms)"
         )
 
-        messages.append({"role": "assistant", "content": response.content})
+        # Add the assistant's full response (text + tool_use blocks) to history
+        messages.append({"role": "assistant", "content": final.content})
 
-        tool_uses = [block for block in response.content if block.type == "tool_use"]
+        # Extract any tool_use blocks
+        tool_uses_in_round = [b for b in final.content if b.type == "tool_use"]
 
-        if not tool_uses:
-            # ── Final answer ───────────────────────────────────────────────
-            answer_text = "".join(b.text for b in response.content if b.type == "text")
-            for block in response.content:
-                if block.type == "text":
-                    yield _sse({"text": block.text})
+        if not tool_uses_in_round:
+            # ── No tool calls → final answer was already streamed ─────────
             yield "data: [DONE]\n\n"
 
             total_ms = int((time.time() - t_start) * 1000)
             logger.info(
                 f"[{trace_id}] ✎ final answer "
-                f"({len(answer_text)} chars, {round_num} round{'s' if round_num != 1 else ''}, "
+                f"({len(text_buffer)} chars, {round_num} round{'s' if round_num != 1 else ''}, "
                 f"{total_tool_calls} tool call{'s' if total_tool_calls != 1 else ''}, "
                 f"{total_ms}ms total)"
             )
             return
 
-        # ── Tool call(s) ──────────────────────────────────────────────────
+        # ── Execute the tool(s) Claude requested ──────────────────────────
         tool_results = []
-        for tool_use in tool_uses:
+        for tool_use in tool_uses_in_round:
             total_tool_calls += 1
             logger.info(
                 f"[{trace_id}] ⚙  tool call: "
@@ -245,7 +279,6 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
 
             summary = _summarize_result(tool_use.name, result)
             logger.info(f"[{trace_id}] ✓ tool result: {tool_use.name} → {summary} ({tool_ms}ms)")
-            # In DEBUG mode, also dump the full payload (truncated)
             if logger.isEnabledFor(logging.DEBUG):
                 payload = json.dumps(result, default=str)
                 if len(payload) > 1000:
@@ -258,16 +291,17 @@ async def stream_atlas_answer(user_question: str) -> AsyncGenerator[str, None]:
                 "content": json.dumps(result),
             })
 
+        # Feed tool results back as the next user message; loop to next round
         messages.append({"role": "user", "content": tool_results})
 
-    # ── Hit the round cap ─────────────────────────────────────────────────
+    # ── Hit the round cap without a final answer ─────────────────────────
     logger.warning(f"[{trace_id}] ⚠ hit MAX_ROUNDS={MAX_ROUNDS} without final answer")
     yield _sse({"text": "I've explored the data, but I'm having trouble settling on an answer. Could you rephrase the question?"})
     yield "data: [DONE]\n\n"
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# SYNCHRONOUS variant — for the uAgent (Fetch.ai Chat Protocol is single-shot)
+# SYNC variant — for the Fetch.ai uAgent (Chat Protocol is single-shot)
 # Same logging hooks, but returns one string instead of streaming.
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -328,12 +362,3 @@ def get_atlas_answer(user_question: str) -> str:
 
     logger.warning(f"[{trace_id}] ⚠ (sync) hit MAX_ROUNDS={MAX_ROUNDS} without final answer")
     return "I've explored the data, but couldn't settle on an answer. Could you rephrase?"
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# Helpers
-# ════════════════════════════════════════════════════════════════════════════
-
-def _sse(payload: dict) -> str:
-    """Format a payload as a Server-Sent Event message."""
-    return f"data: {json.dumps(payload)}\n\n"
