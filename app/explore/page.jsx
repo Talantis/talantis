@@ -83,8 +83,8 @@ const avgHires = chartData.length
             Where <em>talent</em> actually flows.
           </h1>
           <p className="font-body italic text-xl text-cream-dim max-w-2xl leading-snug">
-            Pick a university. See who&rsquo;s hiring their students.
-            Ask Atlas what it means.
+            The map exists. It just hasn't been drawn yet.
+            Ask Atlas where the talent is hiding.
           </p>
         </section>
 
