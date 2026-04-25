@@ -29,6 +29,15 @@ export default function AtlasFAB() {
     return () => window.removeEventListener("keydown", handler);
   }, [open]);
 
+  // Reset hovered state whenever the panel opens or closes.
+  // Without this, the button gets stuck in a "hovered" visual state after
+  // the panel closes — because the button DOM unmounts when open=true and
+  // re-mounts when open=false, but the cursor is now over where the panel
+  // *used* to be, so no mouseenter/leave event ever fires to update state.
+  useEffect(() => {
+    setHovered(false);
+  }, [open]);
+
   return (
     <>
       {/* ─────────────────────────────────────────────────────────────────
