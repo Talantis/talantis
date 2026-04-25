@@ -29,7 +29,7 @@ export default function Nav() {
           </Link>
           <Link
             href="/#atlas"
-            className="font-display font-bold italic text-sm tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             Ask Atlas
           </Link>

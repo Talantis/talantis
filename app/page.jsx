@@ -21,7 +21,7 @@ export default function HomePage() {
           </div>
 
           <h1 className="font-display text-hero mb-10">
-            T<em className="italic">a</em>lantis.
+            T<em className="shimmer-gold">a</em>lantis.
           </h1>
 
           <p className="font-display italic text-xl md:text-3xl text-cream-dim max-w-3xl leading-snug mb-16">

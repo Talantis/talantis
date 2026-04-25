@@ -79,9 +79,6 @@ const avgHires = chartData.length
             PAGE HEADER
             ============================================================ */}
         <section className="max-w-7xl mx-auto px-6 md:px-12 pt-20 pb-12">
-          <div className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6">
-            — The Map —
-          </div>
           <h1 className="font-display text-section mb-6">
             Where <em>talent</em> actually flows.
           </h1>
