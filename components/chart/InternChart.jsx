@@ -115,22 +115,16 @@ export default function InternChart({ data = [], loading = false, error = null }
 
   // ── Chart ──────────────────────────────────────────────────────────────
   return (
-    <div className="w-full h-[480px] bg-navy-soft border border-line p-8" style={{ borderRadius: "16px" }}>
+    <div className="w-full h-[480px] bg-navy-soft border border-line p-8">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <XAxis
             dataKey="company"
             stroke="#c9b88a"
-            tick={{
-              fill: "#c9b88a",
-              fontFamily: "var(--font-inter-tight)",
-              fontSize: 11,
-            }}
+            tick={(props) => <LogoTick {...props} data={data} />}
             axisLine={{ stroke: "#2a3a5c" }}
             tickLine={false}
             interval={0}
-            angle={-30}
-            textAnchor="end"
             height={60}
           />
           <YAxis

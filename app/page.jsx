@@ -14,7 +14,38 @@ export default function HomePage() {
         {/* ============================================================
             HERO — the mythic opening. Pitch line + primary mark.
             ============================================================ */}
-        <section className="min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-20">
+        <section className="relative min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-20">
+
+          <div className="absolute right-24 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block">
+            <div className="relative w-96 h-96" style={{ animation: 'slowRotate 60s linear infinite' }}>
+              <div className="absolute inset-0 rounded-full border border-[#d4a548]/20"></div>
+              <div className="absolute inset-4 rounded-full border border-[#d4a548]/30"></div>
+              <div className="absolute inset-8 rounded-full border border-white/10"></div>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-[#d4a548] to-transparent"></div>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-t from-[#d4a548]/50 to-transparent"></div>
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 h-0.5 w-8 bg-gradient-to-r from-[#d4a548]/50 to-transparent"></div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 h-0.5 w-8 bg-gradient-to-l from-[#d4a548]/50 to-transparent"></div>
+              <div className="absolute top-12 left-12 w-6 h-0.5 bg-white/20 rotate-45"></div>
+              <div className="absolute top-12 right-12 w-6 h-0.5 bg-white/20 -rotate-45"></div>
+              <div className="absolute bottom-12 left-12 w-6 h-0.5 bg-white/20 -rotate-45"></div>
+              <div className="absolute bottom-12 right-12 w-6 h-0.5 bg-white/20 rotate-45"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-2 border-[#d4a574]/40 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#d4a574]/60 to-[#d4a548]/20"></div>
+                  </div>
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#d4a548]/60"></div>
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-[#d4a548]/40"></div>
+                  <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#d4a548]/40"></div>
+                  <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#d4a548]/40"></div>
+                </div>
+              </div>
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-[#d4a548]/40 text-sm">✦</div>
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[#d4a548]/30 text-xs">✦</div>
+              <div className="absolute top-1/2 -translate-y-1/2 -right-2 text-[#d4a548]/30 text-xs">✦</div>
+            </div>
+          </div>
+
           <div className="font-body font-bold text-sm tracking-wider-lg uppercase text-gold mb-10 flex items-center gap-4">
             <span className="inline-block animate-breathe">✦</span>
             <span>A legendary island of talents</span>

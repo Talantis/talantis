@@ -141,21 +141,7 @@ em {
   font-style: italic;
 }
 
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0); }
-  25%       { transform: translate(10px, -20px); }
-  50%       { transform: translate(-5px, -40px); }
-  75%       { transform: translate(-15px, -20px); }
-}
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0); }
-  25%       { transform: translate(-15px, -30px); }
-  50%       { transform: translate(5px, -60px); }
-  75%       { transform: translate(10px, -30px); }
-}
-@keyframes float3 {
-  0%, 100% { transform: translate(0, 0); }
-  25%       { transform: translate(-10px, -25px); }
-  50%       { transform: translate(15px, -50px); }
-  75%       { transform: translate(5px, -25px); }
+@keyframes slowRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
