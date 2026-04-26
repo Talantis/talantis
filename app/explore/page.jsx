@@ -53,7 +53,26 @@ export default function ExplorePage() {
         return r.json();
       })
       .then((data) => {
-        const rows = (data || [])
+        let rows;
+      if (!university) {
+        const aggregated = (data || []).reduce((acc, r) => {
+          const key = r.company;
+          if (!acc[key]) {
+            acc[key] = {
+              company: r.company,
+              count: 0,
+              logo_url: rewriteLogoUrl(r.logo_url),
+            };
+          }
+          acc[key].count += Number(r.intern_count) || 0;
+          return acc;
+        }, {});
+
+        rows = Object.values(aggregated)
+          .sort((a, b) => a.company.localeCompare(b.company))
+          .slice(0, 12);
+      } else {
+        rows = (data || [])
           .map((r) => ({
             company: r.company,
             count: Number(r.intern_count) || 0,
@@ -61,6 +80,8 @@ export default function ExplorePage() {
           }))
           .sort((a, b) => a.company.localeCompare(b.company))
           .slice(0, 12);
+      }
+
         setChartData(rows);
       })
       .catch((err) => {
