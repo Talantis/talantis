@@ -146,47 +146,62 @@ async def submit_internship(
     season:     str = Form(...),
     offer_letter: UploadFile | None = File(default=None),
 ):
-    uni_slug = slug_for_university(university)
-    if not uni_slug:
-        raise HTTPException(400, f"Unknown university: {university}")
-
-    co_slug = slug_for_company(company)
-    if not co_slug:
-        raise HTTPException(400, f"Unknown company: {company}")
-
+    import traceback
+    step = "init"
     try:
+        step = "lookup_university"
+        uni_slug = slug_for_university(university)
+        if not uni_slug:
+            raise HTTPException(400, f"Unknown university: {university}")
+
+        step = "lookup_company"
+        co_slug = slug_for_company(company)
+        if not co_slug:
+            raise HTTPException(400, f"Unknown company: {company}")
+
+        step = "parse_year"
         year_int = int(year)
-    except ValueError:
-        raise HTTPException(400, f"Invalid year: {year}")
 
-    proof_url: str | None = None
-    if offer_letter and offer_letter.filename:
-        ext = os.path.splitext(offer_letter.filename)[1].lower()
-        if ext not in ALLOWED_EXTS:
-            raise HTTPException(400, "File must be PDF, JPG, or PNG")
-        contents = await offer_letter.read()
-        if len(contents) > MAX_FILE_BYTES:
-            raise HTTPException(400, "File exceeds 10MB limit")
-        path = f"{uuid.uuid4().hex}{ext}"
-        proof_url = upload_offer_letter(
-            path, contents, offer_letter.content_type or "application/octet-stream"
+        step = "read_file"
+        proof_url: str | None = None
+        if offer_letter and offer_letter.filename:
+            ext = os.path.splitext(offer_letter.filename)[1].lower()
+            if ext not in ALLOWED_EXTS:
+                raise HTTPException(400, "File must be PDF, JPG, or PNG")
+            contents = await offer_letter.read()
+            if len(contents) > MAX_FILE_BYTES:
+                raise HTTPException(400, "File exceeds 10MB limit")
+            step = "upload_file"
+            path = f"{uuid.uuid4().hex}{ext}"
+            proof_url = upload_offer_letter(
+                path, contents, offer_letter.content_type or "application/octet-stream"
+            )
+
+        step = "build_row"
+        key = f"submission-{email}-{co_slug}-{uni_slug}-{year_int}-{season}".encode()
+        student_hash = hashlib.sha256(key).hexdigest()[:16]
+
+        row = {
+            "student_hash":    student_hash,
+            "company_slug":    co_slug,
+            "university_slug": uni_slug,
+            "role_title":      roleTitle,
+            "role_category":   category,
+            "year":            year_int,
+            "season":          season,
+            "source":          "user-submission",
+        }
+        if proof_url:
+            row["proof_url"] = proof_url
+
+        step = "insert"
+        insert_internship(row)
+        return {"ok": True, "proof_url": proof_url}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            500,
+            detail=f"step={step} type={type(e).__name__} msg={e} trace={traceback.format_exc()[-500:]}",
         )
-
-    key = f"submission-{email}-{co_slug}-{uni_slug}-{year_int}-{season}".encode()
-    student_hash = hashlib.sha256(key).hexdigest()[:16]
-
-    row = {
-        "student_hash":    student_hash,
-        "company_slug":    co_slug,
-        "university_slug": uni_slug,
-        "role_title":      roleTitle,
-        "role_category":   category,
-        "year":            year_int,
-        "season":          season,
-        "source":          "user-submission",
-    }
-    if proof_url:
-        row["proof_url"] = proof_url
-
-    insert_internship(row)
-    return {"ok": True, "proof_url": proof_url}
