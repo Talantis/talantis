@@ -89,7 +89,7 @@ Atlas is **registered, active, and discoverable** on Fetch.ai's Agentverse marke
 
 ## Talk to Atlas through ASI:One
 
-![ASI:One chat session screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/asi1-shared-chat.png)
+![ASI:One chat session screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/asi_1-shared-chat.png)
 
 Anyone with an ASI:One account can ask Atlas questions directly:
 
