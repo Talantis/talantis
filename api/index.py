@@ -95,8 +95,11 @@ def universities():
 
 
 @app.get("/api/companies")
-def companies(university: str | None = Query(default=None)):
-    return get_intern_data(university)
+def companies(
+    university: str | None = Query(default=None),
+    year: int | None = Query(default=None, ge=2021, le=2025),
+):
+    return get_intern_data(university, year)
 
 
 # ────────────────────────────────────────────────────────────────────────────

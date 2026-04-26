@@ -5,6 +5,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import InternChart from "@/components/chart/InternChart";
 import UniversityFilter from "@/components/chart/UniversityFilter";
+import YearFilter from "@/components/chart/YearFilter";
 
 // Clearbit's free Logo API was shut down — rewrite the seeded URLs
 // to Google's S2 favicon service, which is free and needs no key.
@@ -17,6 +18,7 @@ function rewriteLogoUrl(url) {
 
 export default function ExplorePage() {
   const [university, setUniversity] = useState("");
+  const [year, setYear] = useState("");
 
   // ───────────────────────────────────────────────────────────────────────
   // Live data fetching
@@ -38,14 +40,16 @@ export default function ExplorePage() {
       .catch((err) => console.error("Failed to load universities:", err));
   }, []);
 
-  // Fetch chart data whenever the selected university changes
+  // Fetch chart data whenever the selected university or year changes
   useEffect(() => {
     setChartLoading(true);
     setChartError(null);
 
-    const url = university
-      ? `/api/companies?university=${encodeURIComponent(university)}`
-      : "/api/companies";
+    const params = new URLSearchParams();
+    if (university) params.set("university", university);
+    if (year !== "") params.set("year", String(year));
+    const qs = params.toString();
+    const url = qs ? `/api/companies?${qs}` : "/api/companies";
 
     fetch(url)
       .then((r) => {
@@ -90,7 +94,7 @@ export default function ExplorePage() {
         setChartData([]);
       })
       .finally(() => setChartLoading(false));
-  }, [university]);
+  }, [university, year]);
 
   // Derived metrics from chartData
   const totalHires = chartData.reduce((sum, r) => sum + r.count, 0);
@@ -215,7 +219,7 @@ export default function ExplorePage() {
             Atlas's dedicated section is gone — the FAB is the entry point.
             ============================================================ */}
         <section className="max-w-7xl mx-auto px-6 md:px-12 pb-12">
-          <div className="mb-3 flex items-center gap-6">
+          <div className="mb-3 flex flex-wrap items-center gap-x-6 gap-y-3">
             <span className="font-body italic text-xs tracking-wider-md uppercase text-gold">
               Filter by
             </span>
@@ -223,6 +227,10 @@ export default function ExplorePage() {
               value={university}
               onChange={setUniversity}
               universities={universityList}
+            />
+            <YearFilter
+              value={year}
+              onChange={setYear}
             />
           </div>
 
@@ -233,9 +241,13 @@ export default function ExplorePage() {
           />
 
           <div className="mt-2 font-body italic text-xs text-cream-dim">
-            {university
-              ? `Internships from ${university} · Summer 2024`
-              : "Top hiring companies · Summer 2024"}
+            {(() => {
+              const who = university
+                ? `Internships from ${university}`
+                : "Top hiring companies";
+              const when = year === "" ? "2021–2025" : `Summer ${year}`;
+              return `${who} · ${when}`;
+            })()}
           </div>
         </section>
       </main>

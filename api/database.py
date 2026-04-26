@@ -41,16 +41,49 @@ def get_universities() -> list[str]:
     return [r["display_name"] for r in res.data]
 
 
-def get_intern_data(university: str | None = None) -> list[dict]:
+CHART_YEARS = [2021, 2022, 2023, 2024, 2025]
+
+
+def get_intern_data(
+    university: str | None = None,
+    year: int | None = None,
+) -> list[dict]:
     """
     Return intern counts per company for the bar chart.
-    Optionally filtered to a single university.
+    Optionally filtered to a single university and/or year.
+    When year is None, counts are aggregated across CHART_YEARS.
     """
-    res = _sb().rpc(
-        "get_company_counts",
-        {"p_university": university, "p_year": 2024}
-    ).execute()
-    return res.data
+    if year is not None:
+        res = _sb().rpc(
+            "get_company_counts",
+            {"p_university": university, "p_year": year},
+        ).execute()
+        return res.data
+
+    aggregated: dict[str, dict] = {}
+    for y in CHART_YEARS:
+        res = _sb().rpc(
+            "get_company_counts",
+            {"p_university": university, "p_year": y},
+        ).execute()
+        for row in res.data or []:
+            company = row.get("company")
+            if not company:
+                continue
+            entry = aggregated.get(company)
+            if entry is None:
+                aggregated[company] = {**row}
+            else:
+                entry["intern_count"] = (
+                    (entry.get("intern_count") or 0)
+                    + (row.get("intern_count") or 0)
+                )
+
+    return sorted(
+        aggregated.values(),
+        key=lambda r: r.get("intern_count") or 0,
+        reverse=True,
+    )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
