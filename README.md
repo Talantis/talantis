@@ -1,6 +1,6 @@
 <div align="center">
 
-![Talantis hero banner](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/hero-Banner.png)
+![Talantis hero banner](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/heroo-banner.png)
 
 # Talantis
 
