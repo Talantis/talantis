@@ -165,7 +165,7 @@ export default function InternChart({ data = [], loading = false, error = null }
 
       {/* ADDED — pagination controls */}
       {totalPages > 1 && (
-        <div className="relative z-10 flex items-center justify-end gap-3 mt-2">
+        <div className="relative z-10 flex items-center justify-center gap-3 mt-2">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
