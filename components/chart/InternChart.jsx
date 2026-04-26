@@ -27,13 +27,33 @@ function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const { company, count } = payload[0].payload;
   return (
-    <div className="bg-navy-soft border border-gold px-4 py-3 shadow-xl">
+    <div className="bg-navy-soft border border-aqua px-4 py-3 shadow-xl">
       <div className="font-display text-lg text-cream">{company}</div>
       <div className="font-body text-sm text-cream-dim">
-        <span className="text-gold font-medium">{count}</span>{" "}
+        <span className="text-aqua font-medium">{count}</span>{" "}
         intern{count === 1 ? "" : "s"}
       </div>
     </div>
+  );
+}
+
+function PolishedBar({ x, y, width, height, fill, payload, maxCount }) {
+  if (height <= 0 || width <= 0) return null;
+  const isTop = payload?.count === maxCount;
+  const r = Math.min(4, width / 2);
+  const path = `M ${x},${y + r} Q ${x},${y} ${x + r},${y} L ${x + width - r},${y} Q ${x + width},${y} ${x + width},${y + r} L ${x + width},${y + height} L ${x},${y + height} Z`;
+  return (
+    <g filter={isTop ? "url(#topGlow)" : undefined}>
+      <path d={path} fill={fill} />
+      <rect
+        x={x + 1.5}
+        y={y + 1}
+        width={Math.max(width - 3, 0)}
+        height={1.5}
+        fill={isTop ? "rgba(180, 230, 235, 0.75)" : "rgba(255, 240, 200, 0.55)"}
+        rx={1}
+      />
+    </g>
   );
 }
 // ADDED — LogoTick using logo_url from backend, falls back to initials
@@ -114,10 +134,31 @@ export default function InternChart({ data = [], loading = false, error = null }
   }
 
   // ── Chart ──────────────────────────────────────────────────────────────
+  const maxCount = Math.max(...data.map((d) => d.count));
+
   return (
     <div className="w-full h-[480px] bg-navy-soft border border-line p-8">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
+          <defs>
+            <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f0d175" />
+              <stop offset="55%" stopColor="#c9a548" />
+              <stop offset="100%" stopColor="#6a5424" />
+            </linearGradient>
+            <linearGradient id="barTop" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#9ae0e8" />
+              <stop offset="35%" stopColor="#f0d175" />
+              <stop offset="100%" stopColor="#7a5e2c" />
+            </linearGradient>
+            <filter id="topGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
           <XAxis
             dataKey="company"
             stroke="#c9b88a"
@@ -140,11 +181,14 @@ export default function InternChart({ data = [], loading = false, error = null }
           />
           <Tooltip
             content={<CustomTooltip />}
-            cursor={{ fill: "rgba(212, 165, 72, 0.08)" }}
+            cursor={{ fill: "rgba(79, 179, 191, 0.08)" }}
           />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill="#d4a548" />
+          <Bar dataKey="count" shape={(props) => <PolishedBar {...props} maxCount={maxCount} />}>
+            {data.map((d, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={d.count === maxCount ? "url(#barTop)" : "url(#barGold)"}
+              />
             ))}
           </Bar>
         </BarChart>
