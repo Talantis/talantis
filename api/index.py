@@ -181,6 +181,11 @@ async def submit_internship(
         key = f"submission-{email}-{co_slug}-{uni_slug}-{year_int}-{season}".encode()
         student_hash = hashlib.sha256(key).hexdigest()[:16]
 
+        # source must satisfy the internships.source check constraint
+        # ('real' | 'synthetic'). User submissions are real (not seeded).
+        # proof_url is not persisted to the row — the schema has no such
+        # column. The file is still uploaded to Supabase Storage and the
+        # URL is returned to the client.
         row = {
             "student_hash":    student_hash,
             "company_slug":    co_slug,
@@ -189,10 +194,8 @@ async def submit_internship(
             "role_category":   category,
             "year":            year_int,
             "season":          season,
-            "source":          "user-submission",
+            "source":          "real",
         }
-        if proof_url:
-            row["proof_url"] = proof_url
 
         step = "insert"
         insert_internship(row)

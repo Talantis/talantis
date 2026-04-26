@@ -23,7 +23,7 @@ const CATEGORIES = [
 
 const SEASONS = ["Summer", "Fall", "Winter", "Spring"];
 
-const YEARS = ["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018", "2017", "2016"];
+const YEARS = ["2026", "2025", "2024", "2023", "2022", "2021", "2020"];
 
 const inputClass = `
   w-full bg-navy border border-line text-cream font-body text-sm px-4 py-3
@@ -90,7 +90,16 @@ export default function SubmitPage() {
         method: "POST",
         body,
       });
-      if (!res.ok) throw new Error(`Submission failed (${res.status})`);
+      if (!res.ok) {
+        let detail = "";
+        try {
+          const data = await res.json();
+          detail = data?.detail ? ` — ${data.detail}` : "";
+        } catch {
+          try { detail = ` — ${await res.text()}`; } catch {}
+        }
+        throw new Error(`Submission failed (${res.status})${detail}`);
+      }
       setSubmitted(true);
     } catch (err) {
       setError(err.message);
