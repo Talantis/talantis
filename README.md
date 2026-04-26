@@ -89,11 +89,11 @@ Atlas is **registered, active, and discoverable** on Fetch.ai's Agentverse marke
 
 ## Talk to Atlas through ASI:One
 
-[IMAGE 5: ASI:One chat session screenshot — the shared chat URL view showing your demo conversation with Atlas. Multi-turn, with at least 3 exchanges visible. Full screenshot. If your shared chat URL is `https://asi1.ai/chat/34baa031-0819-498d-8574-f6ba57ef744b`, this image is the proof that it works end-to-end.]
+[ASI:One chat session screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/asi1-shared-chat.png)
 
 Anyone with an ASI:One account can ask Atlas questions directly:
 
-→ **[Live ASI:One demo conversation](https://asi1.ai/shared-chat/d6a13959-1b64-4e1d-b34c-7335ad570468)**
+→ **[Live ASI:One demo conversation](https://asi1.ai/shared-chat/cd572643-48d0-4020-a7ee-679eb37f9e2b)**
 
 Sample questions Atlas handles in stride:
 
@@ -272,7 +272,7 @@ Built for **LA Hacks 2026** — Fetch.ai Agentverse: Search & Discovery of Agent
 
 **Deliverables:**
 
-1. **ASI:One shared chat session** → [asi1.ai/shared-chat/YOUR_UUID_HERE](https://asi1.ai/chat/34baa031-0819-498d-8574-f6ba57ef744b)
+1. **ASI:One shared chat session** → [asi1.ai/shared-chat/YOUR_UUID_HERE](https://asi1.ai/shared-chat/cd572643-48d0-4020-a7ee-679eb37f9e2b)
 2. **Agentverse profile** → [agentverse.ai/agents/details/agent1qw9srfevfplt27z6du7xns4venmtafdezxnujl3ksamz03qwud9yurhc0hv/profile](https://agentverse.ai/agents/details/agent1qw9srfevfplt27z6du7xns4venmtafdezxnujl3ksamz03qwud9yurhc0hv/profile)
 3. **Public repo** → [github.com/Talantis/talantis](https://github.com/Talantis/talantis)
 4. **Demo video** → [Devpost submission](https://devpost.com/software/talantis)
