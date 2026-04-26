@@ -129,7 +129,7 @@ export default function InternChart({ data = [], loading = false, error = null }
     <div className="w-full bg-navy-soft border border-line rounded-2xl p-6">
       <div className="h-[350px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={pageData} margin={{ top: 20, right: 20, left: 20, bottom: 8 }}>
+          <BarChart data={pageData} margin={{ top: 20, right: 20, left: 20, bottom: 40 }}>
             <XAxis
               dataKey="company"
               stroke="#c9b88a"
@@ -165,7 +165,7 @@ export default function InternChart({ data = [], loading = false, error = null }
 
       {/* ADDED — pagination controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-3 mt-2">
+        <div className="relative z-10 flex items-center justify-end gap-3 mt-2">
           <button
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
