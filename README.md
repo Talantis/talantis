@@ -122,7 +122,7 @@ Multi-turn works natively — Atlas remembers what you just discussed:
 
 ## The data
 
-![Bar chart screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/bar-chart.png)
+![Bar chart screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/barr-chart.png)
 
 Talantis's dataset covers **1,334 internship placements across 54 companies and 31 universities** for Summer 2024.
 
