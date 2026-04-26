@@ -120,21 +120,21 @@ export default function InternChart({ data = [], loading = false, error = null }
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <XAxis
             dataKey="company"
-            stroke="#c9b88a"
+            stroke="#d4a548"
             tick={(props) => <LogoTick {...props} data={data} />}
-            axisLine={{ stroke: "#2a3a5c" }}
+            axisLine={{ stroke: "#d4a548", strokeWidth: 1.5 }}
             tickLine={false}
             interval={0}
             height={60}
           />
           <YAxis
-            stroke="#c9b88a"
+            stroke="#d4a548"
             tick={{
-              fill: "#c9b88a",
+              fill: "#d4a548",
               fontFamily: "var(--font-inter-tight)",
-              fontSize: 12,
+              fontSize: 13,
             }}
-            axisLine={{ stroke: "#2a3a5c" }}
+            axisLine={{ stroke: "#d4a548", strokeWidth: 1.5 }}
             tickLine={false}
             allowDecimals={false}
           />
@@ -142,7 +142,7 @@ export default function InternChart({ data = [], loading = false, error = null }
             content={<CustomTooltip />}
             cursor={{ fill: "rgba(79, 179, 191, 0.08)" }}
           />
-          <Bar dataKey="count" fill="#f0d175" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="count" fill="#f5ecd7" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
