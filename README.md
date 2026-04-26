@@ -70,7 +70,7 @@ Each tool maps to a Postgres function defined in `schema_tools.sql` for indexed 
 
 ## The Atlas agent on Agentverse
 
-[Agentverse profile page](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/agent-profile.png)
+![Agentverse profile page](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/agent-profile.png)
 
 Atlas is **registered, active, and discoverable** on Fetch.ai's Agentverse marketplace.
 
@@ -114,7 +114,7 @@ Multi-turn works natively — Atlas remembers what you just discussed:
 
 ## The data
 
-[Bar chart screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/bar-chart.png)
+![Bar chart screenshot](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/bar-chart.png)
 
 Talantis's dataset covers **1,334 internship placements across 54 companies and 31 universities** for Summer 2024.
 
@@ -172,7 +172,7 @@ The hackathon dataset is realistic enough to demonstrate every Atlas capability 
 
 ## The brand
 
-[Brand Grid Ss](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/brand-grid.png)
+![Brand Grid Ss](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/brand-grid.png)
 
 Talantis ("tuh-LAN-tis") = **legendary island of talents**. The name does double duty: a play on Atlantis, and a portmanteau of *talent* + *atlantis*.
 
