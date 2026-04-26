@@ -22,15 +22,25 @@ import ReactMarkdown from "react-markdown";
  */
 
 const SUGGESTIONS = [
+  // Recruiter-side
   "How many UCLA students interned at Stripe last year?",
   "Compare Citadel and Jane Street's hiring patterns.",
   "We're Stripe. Where are Plaid, Brex, and Ramp finding talent we're missing?",
+  // Student-side
+  "I'm at UCLA studying CS. What SWE internships are realistic for me?",
+  "How does USC stack up at Snap?",
+  "I'm at UC Davis. Where do students like me usually end up in tech?",
 ];
 
 const TOOL_LABELS = {
-  filter_internships:    "scanning the dataset",
-  compare_companies:     "comparing pipelines",
-  find_similar_schools:  "tracing hidden coastlines",
+  // Recruiter-side
+  filter_internships:        "scanning the dataset",
+  compare_companies:         "comparing pipelines",
+  find_similar_schools:      "tracing hidden coastlines",
+  // Student-side
+  find_target_companies:     "charting your targets",
+  analyze_school_at_company: "weighing your school's record",
+  discover_career_paths:     "mapping the pathways",
 };
 
 const STORAGE_KEY = "talantis.atlas.chat";

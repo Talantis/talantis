@@ -463,3 +463,410 @@ $$;
 grant execute on function tic_filter_internships(text, text, text, text, int, text, int) to anon, authenticated;
 grant execute on function tic_compare_companies(text[], int, int)                          to anon, authenticated;
 grant execute on function tic_find_similar_schools(text, text[], int, int)                 to anon, authenticated;
+
+-- =============================================================================
+-- Talantis · Student-side Talent Intelligence Tools
+-- =============================================================================
+-- Three new RPC functions to add to your Supabase database. These power the
+-- student-facing tools that complement the existing recruiter-facing three.
+--
+-- Run this whole file in: Supabase Dashboard → SQL Editor → New query → Run
+--
+-- All three functions are idempotent (CREATE OR REPLACE) — safe to re-run.
+-- =============================================================================
+
+
+-- =============================================================================
+-- TOOL 4: tic_find_target_companies
+-- "Given my school + interests, what companies should I apply to?"
+-- =============================================================================
+-- Returns companies ranked by how realistic an application is, based on
+-- the student's school's actual hiring history at each company.
+--
+-- Tier definitions:
+--   "strong-fit" — school placed >= 3 students at this company in the year
+--   "realistic" — school placed 1-2 students
+--   "reach"     — school placed 0 but the company hires from comparable schools
+--
+-- The "comparable schools" logic uses other schools that historically share
+-- placement patterns with the student's school. We approximate this by saying:
+-- a company is a reach if it hires from any school that shares 2+ companies
+-- with our reference school's placement set.
+-- =============================================================================
+
+create or replace function tic_find_target_companies(
+  p_university    text,
+  p_industry      text default null,
+  p_role_category text default null,
+  p_year          integer default 2024,
+  p_limit         integer default 15
+)
+returns table (
+  company             text,
+  company_slug        text,
+  industry            text,
+  intern_count        integer,
+  tier                text,
+  reasoning           text
+)
+language plpgsql
+as $$
+declare
+  v_university_slug text;
+begin
+  -- Resolve university (accept both display name and slug)
+  select slug into v_university_slug
+  from universities
+  where lower(display_name) = lower(p_university) or slug = lower(p_university)
+  limit 1;
+
+  if v_university_slug is null then
+    return;  -- empty result for unknown school
+  end if;
+
+  return query
+  with
+    -- All companies that match the user's filters
+    candidates as (
+      select c.slug as cslug, c.display_name as cname, c.industry_slug as cind
+      from companies c
+      where (p_industry is null or c.industry_slug = p_industry)
+    ),
+
+    -- This school's actual placements at each candidate company
+    school_at_company as (
+      select
+        c.cslug,
+        c.cname,
+        c.cind,
+        coalesce(sum(i.intern_count), 0)::integer as count_at_co
+      from candidates c
+      left join internships i
+        on i.company_slug = c.cslug
+       and i.university_slug = v_university_slug
+       and i.year = p_year
+       and (p_role_category is null or i.role_category = p_role_category)
+      group by c.cslug, c.cname, c.cind
+    ),
+
+    -- Schools comparable to ours: schools that share 2+ companies with us
+    comparable_schools as (
+      select distinct other.university_slug
+      from internships ours
+      join internships other
+        on ours.company_slug = other.company_slug
+       and ours.year = other.year
+      where ours.university_slug = v_university_slug
+        and ours.year = p_year
+        and other.university_slug != v_university_slug
+      group by other.university_slug
+      having count(distinct other.company_slug) >= 2
+    ),
+
+    -- Whether each candidate company hires from comparable schools
+    company_in_peer_set as (
+      select i.company_slug as cslug, count(distinct i.university_slug) as peer_school_count
+      from internships i
+      where i.year = p_year
+        and i.university_slug in (select university_slug from comparable_schools)
+        and (p_role_category is null or i.role_category = p_role_category)
+      group by i.company_slug
+    )
+
+  select
+    sac.cname            as company,
+    sac.cslug            as company_slug,
+    sac.cind             as industry,
+    sac.count_at_co      as intern_count,
+    case
+      when sac.count_at_co >= 3 then 'strong-fit'
+      when sac.count_at_co >= 1 then 'realistic'
+      when coalesce(cps.peer_school_count, 0) >= 2 then 'reach'
+      else 'unmapped'
+    end                  as tier,
+    case
+      when sac.count_at_co >= 3 then
+        'Your school sent ' || sac.count_at_co || ' interns here. Strong pipeline.'
+      when sac.count_at_co >= 1 then
+        sac.count_at_co || ' student' ||
+        case when sac.count_at_co = 1 then '' else 's' end ||
+        ' from your school landed here. Realistic.'
+      when coalesce(cps.peer_school_count, 0) >= 2 then
+        'No placements from your school yet, but ' || cps.peer_school_count ||
+        ' comparable schools placed students here.'
+      else
+        'No clear precedent for this combination. May still be worth a try.'
+    end                  as reasoning
+  from school_at_company sac
+  left join company_in_peer_set cps on cps.cslug = sac.cslug
+  -- Filter out unmapped unless the student is explicitly looking at an industry
+  where (p_industry is not null) or (
+    sac.count_at_co > 0 or coalesce(cps.peer_school_count, 0) >= 2
+  )
+  order by
+    case
+      when sac.count_at_co >= 3 then 1
+      when sac.count_at_co >= 1 then 2
+      when coalesce(cps.peer_school_count, 0) >= 2 then 3
+      else 4
+    end,
+    sac.count_at_co desc,
+    coalesce(cps.peer_school_count, 0) desc
+  limit p_limit;
+end;
+$$;
+
+
+-- =============================================================================
+-- TOOL 5: tic_analyze_school_at_company
+-- "How does my school stack up at Company X?"
+-- =============================================================================
+-- Returns:
+--   - The school's actual placement count at the company
+--   - The company's overall placement distribution (top schools)
+--   - Where the student's school ranks in that distribution
+--   - Comparable peer schools and how THEY did at the same company
+-- =============================================================================
+
+create or replace function tic_analyze_school_at_company(
+  p_university   text,
+  p_company      text,
+  p_year         integer default 2024
+)
+returns json
+language plpgsql
+as $$
+declare
+  v_university_slug text;
+  v_company_slug    text;
+  v_school_count    integer;
+  v_school_rank     integer;
+  v_total_at_co     integer;
+  v_top_schools     json;
+  v_peer_perf       json;
+begin
+  -- Resolve names → slugs
+  select slug into v_university_slug
+  from universities
+  where lower(display_name) = lower(p_university) or slug = lower(p_university)
+  limit 1;
+
+  select slug into v_company_slug
+  from companies
+  where lower(display_name) = lower(p_company) or slug = lower(p_company)
+  limit 1;
+
+  if v_university_slug is null or v_company_slug is null then
+    return json_build_object('error', 'unknown university or company');
+  end if;
+
+  -- This school's placement at this company
+  select coalesce(sum(intern_count), 0) into v_school_count
+  from internships
+  where university_slug = v_university_slug
+    and company_slug    = v_company_slug
+    and year            = p_year;
+
+  -- The company's total intern placements this year
+  select coalesce(sum(intern_count), 0) into v_total_at_co
+  from internships
+  where company_slug = v_company_slug and year = p_year;
+
+  -- The school's rank among all schools placing at this company
+  select coalesce(rank, null) into v_school_rank
+  from (
+    select u.slug,
+           rank() over (order by sum(i.intern_count) desc) as rank
+    from internships i
+    join universities u on u.slug = i.university_slug
+    where i.company_slug = v_company_slug
+      and i.year = p_year
+    group by u.slug
+  ) t
+  where t.slug = v_university_slug;
+
+  -- Top 5 schools at this company
+  select json_agg(json_build_object(
+    'university', u.display_name,
+    'count',      total
+  ) order by total desc) into v_top_schools
+  from (
+    select u.display_name, sum(i.intern_count)::integer as total
+    from internships i
+    join universities u on u.slug = i.university_slug
+    where i.company_slug = v_company_slug
+      and i.year = p_year
+    group by u.display_name
+    order by total desc
+    limit 5
+  ) u;
+
+  -- How comparable peer schools did at this same company
+  select json_agg(json_build_object(
+    'university', u.display_name,
+    'count',      placements
+  ) order by placements desc) into v_peer_perf
+  from (
+    select other.university_slug, sum(other.intern_count)::integer as placements
+    from internships ours
+    join internships other
+      on ours.company_slug = other.company_slug
+     and ours.year = other.year
+    where ours.university_slug = v_university_slug
+      and ours.year = p_year
+      and other.university_slug != v_university_slug
+      and other.company_slug = v_company_slug
+    group by other.university_slug
+    having count(distinct other.company_slug) >= 1
+    order by placements desc
+    limit 5
+  ) p
+  join universities u on u.slug = p.university_slug;
+
+  return json_build_object(
+    'university',           p_university,
+    'company',              p_company,
+    'year',                 p_year,
+    'school_placements',    v_school_count,
+    'school_rank',          v_school_rank,
+    'company_total',        v_total_at_co,
+    'top_schools_at_company', coalesce(v_top_schools, '[]'::json),
+    'peer_school_performance', coalesce(v_peer_perf, '[]'::json)
+  );
+end;
+$$;
+
+
+-- =============================================================================
+-- TOOL 6: tic_discover_career_paths
+-- "Where do students like me usually end up?"  ★ student-side magic
+-- =============================================================================
+-- The student's mirror of find_similar_schools. Given a school + interest area,
+-- find the realistic landing distribution by aggregating placements from:
+--   - The student's own school (direct precedent)
+--   - Comparable peer schools (similar trajectory)
+--
+-- Surfaces "stepping stone" companies that students from comparable schools
+-- have landed at, even if your specific school hasn't sent anyone yet.
+--
+-- Returns paths grouped into:
+--   - direct paths     — companies your school has placed at
+--   - peer paths       — companies comparable schools have placed at
+--   - bridge paths     — companies in your industry that hire from peer schools
+-- =============================================================================
+
+create or replace function tic_discover_career_paths(
+  p_university    text,
+  p_role_category text default null,
+  p_industry      text default null,
+  p_year          integer default 2024,
+  p_limit         integer default 12
+)
+returns json
+language plpgsql
+as $$
+declare
+  v_university_slug text;
+  v_direct          json;
+  v_peer            json;
+  v_bridge          json;
+begin
+  select slug into v_university_slug
+  from universities
+  where lower(display_name) = lower(p_university) or slug = lower(p_university)
+  limit 1;
+
+  if v_university_slug is null then
+    return json_build_object('error', 'unknown university');
+  end if;
+
+  -- Direct paths: companies your school has placed at
+  select json_agg(json_build_object(
+    'company',      cname,
+    'industry',     cind,
+    'count',        count,
+    'path_type',    'direct'
+  ) order by count desc) into v_direct
+  from (
+    select c.display_name as cname, c.industry_slug as cind, sum(i.intern_count)::integer as count
+    from internships i
+    join companies c on c.slug = i.company_slug
+    where i.university_slug = v_university_slug
+      and i.year = p_year
+      and (p_role_category is null or i.role_category = p_role_category)
+      and (p_industry      is null or c.industry_slug = p_industry)
+    group by c.display_name, c.industry_slug
+    order by count desc
+    limit p_limit
+  ) d;
+
+  -- Peer paths: companies that comparable schools placed at,
+  -- where YOUR school hasn't (or has placed less than peers)
+  with comparable_schools as (
+    select distinct other.university_slug
+    from internships ours
+    join internships other
+      on ours.company_slug = other.company_slug
+     and ours.year = other.year
+    where ours.university_slug = v_university_slug
+      and ours.year = p_year
+      and other.university_slug != v_university_slug
+    group by other.university_slug
+    having count(distinct other.company_slug) >= 2
+  ),
+  ours_at_co as (
+    select i.company_slug, sum(i.intern_count)::integer as my_count
+    from internships i
+    where i.university_slug = v_university_slug
+      and i.year = p_year
+      and (p_role_category is null or i.role_category = p_role_category)
+    group by i.company_slug
+  ),
+  peers_at_co as (
+    select i.company_slug,
+           sum(i.intern_count)::integer as peer_count,
+           count(distinct i.university_slug) as peer_school_count
+    from internships i
+    where i.university_slug in (select university_slug from comparable_schools)
+      and i.year = p_year
+      and (p_role_category is null or i.role_category = p_role_category)
+    group by i.company_slug
+  )
+  select json_agg(json_build_object(
+    'company',         c.display_name,
+    'industry',        c.industry_slug,
+    'count',           p.peer_count,
+    'peer_schools',    p.peer_school_count,
+    'your_school',     coalesce(o.my_count, 0),
+    'path_type',       'peer'
+  ) order by p.peer_count desc) into v_peer
+  from peers_at_co p
+  join companies c on c.slug = p.company_slug
+  left join ours_at_co o on o.company_slug = p.company_slug
+  where coalesce(o.my_count, 0) < p.peer_count
+    and p.peer_school_count >= 2
+    and (p_industry is null or c.industry_slug = p_industry)
+  order by p.peer_count desc
+  limit p_limit;
+
+  return json_build_object(
+    'university',     p_university,
+    'role_category',  p_role_category,
+    'industry',       p_industry,
+    'year',           p_year,
+    'direct_paths',   coalesce(v_direct, '[]'::json),
+    'peer_paths',     coalesce(v_peer,   '[]'::json)
+  );
+end;
+$$;
+
+
+-- =============================================================================
+-- Permissions: grant execute to anon + authenticated (matching the pattern of
+-- existing tic_* functions). If your existing functions use different roles,
+-- match those instead.
+-- =============================================================================
+
+grant execute on function tic_find_target_companies(text, text, text, integer, integer) to anon, authenticated;
+grant execute on function tic_analyze_school_at_company(text, text, integer)            to anon, authenticated;
+grant execute on function tic_discover_career_paths(text, text, text, integer, integer) to anon, authenticated;
