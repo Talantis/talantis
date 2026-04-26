@@ -34,7 +34,7 @@ You can talk to Atlas anywhere. On the [Talantis web app](https://talantis.verce
 
 ## See it move
 
-![Atlas chat conversation](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/atlas-chat-ss.png)
+<img src="https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/atlas-chat-ss.png" alt="Atlas chat conversation" width="400">
 
 > *"We're Stripe. Where are Plaid, Brex, and Ramp finding talent we're missing?"*
 
