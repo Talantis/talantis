@@ -39,7 +39,7 @@ export default function Nav() {
 
   return (
     <header className="relative z-10 border-b border-line">
-      <nav className="max-w-7xl mx-auto px-4 md:px-6 py-5 flex items-center justify-between">
+      <nav className="px-6 md:px-10 py-5 flex items-center justify-between">
         {/* Logo + wordmark — flush left */}
         <Link
           href="/"
