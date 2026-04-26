@@ -88,7 +88,7 @@ export default function InternChart({ data = [], loading = false, error = null }
   // ── Loading state ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="w-full h-[360px] bg-navy-soft border border-line rounded-2xl p-6 flex flex-col items-center justify-center gap-4">
+      <div className="w-full h-[350px] bg-navy-soft border border-line rounded-2xl p-6 flex flex-col items-center justify-center gap-4">
         <Loader2 size={32} className="animate-spin text-gold" />
         <div className="font-display italic text-cream-dim">
           Charting the shoreline...
@@ -100,7 +100,7 @@ export default function InternChart({ data = [], loading = false, error = null }
   // ── Error state ────────────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="w-full h-[360px] bg-navy-soft border border-line rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
+      <div className="w-full h-[350px] bg-navy-soft border border-line rounded-2xl p-6 flex flex-col items-center justify-center gap-2">
         <div className="font-display text-lg text-cream">
           The map is dark.
         </div>
@@ -112,7 +112,7 @@ export default function InternChart({ data = [], loading = false, error = null }
   // ── Empty state ────────────────────────────────────────────────────────
   if (!data || data.length === 0) {
     return (
-      <div className="w-full h-[360px] bg-navy-soft border border-line rounded-2xl p-6 flex items-center justify-center">
+      <div className="w-full h-[350px] bg-navy-soft border border-line rounded-2xl p-6 flex items-center justify-center">
         <div className="font-display italic text-cream-dim">
           No internships found for this filter.
         </div>
@@ -127,7 +127,7 @@ export default function InternChart({ data = [], loading = false, error = null }
   // ── Chart ──────────────────────────────────────────────────────────────
   return (
     <div className="w-full bg-navy-soft border border-line rounded-2xl p-6">
-      <div className="h-[360px]">
+      <div className="h-[350px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={pageData} margin={{ top: 20, right: 20, left: 20, bottom: 8 }}>
             <XAxis
