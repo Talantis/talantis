@@ -141,16 +141,6 @@ export default function InternChart({ data = [], loading = false, error = null }
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <defs>
-            <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f5d77a" />
-              <stop offset="55%" stopColor="#d4a548" />
-              <stop offset="100%" stopColor="#a07c2c" />
-            </linearGradient>
-            <linearGradient id="barTop" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffe8a8" />
-              <stop offset="55%" stopColor="#e9c25a" />
-              <stop offset="100%" stopColor="#c9a548" />
-            </linearGradient>
             <filter id="topGlow" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="6" in="SourceAlpha" result="blur" />
               <feFlood floodColor="#7dd6df" floodOpacity="0.7" result="glow" />
@@ -189,7 +179,7 @@ export default function InternChart({ data = [], loading = false, error = null }
             {data.map((d, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={d.count === maxCount ? "url(#barTop)" : "url(#barGold)"}
+                fill={d.count === maxCount ? "#f0d175" : "#d4a548"}
               />
             ))}
           </Bar>
