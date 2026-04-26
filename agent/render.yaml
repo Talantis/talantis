@@ -1,0 +1,22 @@
+# Render service definition — auto-deploys this directory as a web service
+# whenever you push to the branch you connected.
+#
+# To use:
+#   1. Push this folder to a public GitHub repo (or a subfolder of your
+#      Talantis repo — see deployment notes in the README)
+#   2. In Render dashboard: New + → Blueprint → connect your repo
+#   3. Set the AGENT_SEED_PHRASE secret in the dashboard (or here, but
+#      keep it out of git)
+
+services:
+  - type: web
+    name: atlas-uagent
+    runtime: python
+    plan: free                          # or "starter" for $7/mo always-on
+    buildCommand: pip install -r requirements.txt
+    startCommand: python agent.py
+    envVars:
+      - key: AGENT_SEED_PHRASE
+        sync: false                     # mark as secret — set in dashboard
+      - key: TALANTIS_API_URL
+        value: https://talantis.vercel.app/api/insights
