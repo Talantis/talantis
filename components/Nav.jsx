@@ -28,10 +28,10 @@ export default function Nav() {
             Explore
           </Link>
           <Link
-            href="/#atlas"
+            href="/submit"
             className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
-            Ask Atlas
+            Submit
           </Link>
         </div>
       </nav>
