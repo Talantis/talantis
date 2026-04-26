@@ -48,8 +48,6 @@ No SQL. No dashboards. No "let me get back to you on that." Just the answer, gro
 
 ## How it works
 
-![Architecture Diagram](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/archi.png)
-
 Three layers:
 
 **Frontend** — Next.js 14, Tailwind, deployed on Vercel. The bar chart, the filters, the Atlas FAB chat panel.
