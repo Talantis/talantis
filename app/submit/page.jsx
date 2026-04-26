@@ -27,7 +27,7 @@ const YEARS = ["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "
 
 const inputClass = `
   w-full bg-navy border border-line text-cream font-body text-sm px-4 py-3
-  placeholder:text-cream-dim focus:outline-none focus:border-gold transition-colors
+  placeholder:text-cream focus:outline-none focus:border-gold transition-colors
 `;
 
 const selectClass = `
