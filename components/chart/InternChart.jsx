@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,7 +10,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * InternChart — the money shot. Bar chart of interns per company.
@@ -36,6 +37,7 @@ function CustomTooltip({ active, payload }) {
     </div>
   );
 }
+
 // ADDED — LogoTick using logo_url from backend, falls back to initials
 function LogoTick({ x, y, payload, data }) {
   const item = data.find(d => d.company === payload.value);
@@ -77,7 +79,12 @@ function LogoTick({ x, y, payload, data }) {
   );
 }
 
+// ADDED
+const PAGE_SIZE = 12;
+
 export default function InternChart({ data = [], loading = false, error = null }) {
+  const [page, setPage] = useState(0); // ADDED — must be before early returns
+
   // ── Loading state ──────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -113,42 +120,71 @@ export default function InternChart({ data = [], loading = false, error = null }
     );
   }
 
+  // ADDED — pagination calculations
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const pageData = data.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
   // ── Chart ──────────────────────────────────────────────────────────────
   return (
-    <div className="w-full h-[400px] bg-navy-soft border border-line rounded-2xl p-6">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
-          <XAxis
-            dataKey="company"
-            stroke="#c9b88a"
-            tick={(props) => <LogoTick {...props} data={data} />}
-            axisLine={{ stroke: "#2a3a5c" }}
-            tickLine={false}
-            interval={0}
-            height={60}
-          />
-          <YAxis
-            stroke="#c9b88a"
-            tick={{
-              fill: "#c9b88a",
-              fontFamily: "var(--font-inter-tight)",
-              fontSize: 12,
-            }}
-            axisLine={{ stroke: "#2a3a5c" }}
-            tickLine={false}
-            allowDecimals={false}
-          />
-          <Tooltip
-            content={<CustomTooltip />}
-            cursor={{ fill: "rgba(212, 165, 72, 0.08)" }}
-          />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {data.map((_, index) => (
-              <Cell key={`cell-${index}`} fill="#d4a548" />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div className="w-full bg-navy-soft border border-line rounded-2xl p-6">
+      <div className="h-[400px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={pageData} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
+            <XAxis
+              dataKey="company"
+              stroke="#c9b88a"
+              tick={(props) => <LogoTick {...props} data={pageData} />}
+              axisLine={{ stroke: "#2a3a5c" }}
+              tickLine={false}
+              interval={0}
+              height={60}
+            />
+            <YAxis
+              stroke="#c9b88a"
+              tick={{
+                fill: "#c9b88a",
+                fontFamily: "var(--font-inter-tight)",
+                fontSize: 12,
+              }}
+              axisLine={{ stroke: "#2a3a5c" }}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: "rgba(212, 165, 72, 0.08)" }}
+            />
+            <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              {pageData.map((_, index) => (
+                <Cell key={`cell-${index}`} fill="#d4a548" />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* ADDED — pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-line">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="p-1 text-cream-dim hover:text-gold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <span className="font-body text-xs text-cream-dim">
+            Page {page + 1} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+            className="p-1 text-cream-dim hover:text-gold transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

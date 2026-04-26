@@ -68,18 +68,18 @@ export default function ExplorePage() {
             return acc;
           }, {});
 
+          // REMOVED .slice(0, 12)
           rows = Object.values(aggregated)
-            .sort((a, b) => a.company.localeCompare(b.company))
-            .slice(0, 12);
+            .sort((a, b) => a.company.localeCompare(b.company));
         } else {
+          // REMOVED .slice(0, 12)
           rows = (data || [])
             .map((r) => ({
               company: r.company,
               count: Number(r.intern_count) || 0,
               logo_url: rewriteLogoUrl(r.logo_url),
             }))
-            .sort((a, b) => a.company.localeCompare(b.company))
-            .slice(0, 12);
+            .sort((a, b) => a.company.localeCompare(b.company));
         }
 
         setChartData(rows);
