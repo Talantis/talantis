@@ -54,12 +54,13 @@ export default function ExplorePage() {
       })
       .then((data) => {
         const rows = (data || [])
-          .slice(0, 12)
           .map((r) => ({
             company: r.company,
             count: Number(r.intern_count) || 0,
             logo_url: rewriteLogoUrl(r.logo_url),
-          }));
+          }))
+          .sort((a, b) => a.company.localeCompare(b.company))
+          .slice(0, 12);
         setChartData(rows);
       })
       .catch((err) => {
@@ -88,10 +89,7 @@ const avgHires = chartData.length
             PAGE HEADER
             ============================================================ */}
         <section className="max-w-7xl mx-auto px-6 md:px-12 pt-20 pb-12">
-          <h1 className="font-display text-section mb-6">
-            Where <em>talent</em> actually flows.
-          </h1>
-          <p className="font-body italic text-xl text-cream-dim max-w-2xl leading-snug">
+          <p className="font-body italic text-xl text-cream-dim max-w-3xl leading-snug">
             The map exists. It just hasn't been drawn yet.
             Ask Atlas where the talent is hiding.
           </p>
