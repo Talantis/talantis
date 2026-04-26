@@ -72,13 +72,6 @@ export default function HomePage() {
               <span>Enter the island</span>
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <Link
-              href="#cast"
-              style={ {borderRadius: "6px"}}
-              className="inline-flex items-center gap-3 px-8 py-4 border border-line text-cream font-body font-medium hover:border-[#5bc4c0] hover:text-[#5bc4c0] transition-colors"
-            >
-              <span>Ask Atlas</span>
-            </Link>
           </div>
         </section>
 
