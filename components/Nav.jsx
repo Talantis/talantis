@@ -1,15 +1,46 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import TalantisMark from "./TalantisMark";
 
 /**
- * Nav — the top navigation bar. Appears on every page.
- * Talantis mark on the left, minimal links on the right.
- * Mythic and restrained, not a marketing header.
+ * Nav — top navigation bar, present on every page.
+ *
+ * Layout: Talantis mark+wordmark flush left, Explore / Submit / About flush right.
+ *
+ * About behavior:
+ *   - On the landing page, smooth-scrolls to the #cast section
+ *   - On any other page, navigates to "/#cast" (browser handles the anchor)
+ *
+ * The graceful-scroll-vs-navigate decision is made at click time, not via plain
+ * <a href="#cast">, because Next's <Link> with a hash works correctly only when
+ * already on the target page.
  */
 export default function Nav() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  function handleAboutClick(e) {
+    e.preventDefault();
+
+    // If we're already on the landing page, smooth-scroll
+    if (pathname === "/") {
+      const target = document.getElementById("cast");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+
+    // Otherwise, navigate to "/#cast" — the browser will jump to the anchor
+    router.push("/#cast");
+  }
+
   return (
     <header className="relative z-10 border-b border-line">
-      <nav className="max-w-7xl mx-auto px-6 md:px-12 py-6 flex items-center justify-between">
+      <nav className="max-w-7xl mx-auto px-4 md:px-6 py-5 flex items-center justify-between">
+        {/* Logo + wordmark — flush left */}
         <Link
           href="/"
           className="flex items-center gap-3 group"
@@ -20,7 +51,8 @@ export default function Nav() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-8">
+        {/* Links — flush right */}
+        <div className="flex items-center gap-6 md:gap-8">
           <Link
             href="/explore"
             className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
@@ -33,6 +65,12 @@ export default function Nav() {
           >
             Submit
           </Link>
+          <button
+            onClick={handleAboutClick}
+            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+          >
+            About
+          </button>
         </div>
       </nav>
     </header>

@@ -80,16 +80,13 @@ export default function HomePage() {
               <span>Ask Atlas</span>
             </Link>
           </div>
-
-          {/* Scroll indicator */}
-          <div className="mt-20 w-px h-12 bg-gradient-to-b from-transparent to-gold opacity-50 mx-auto animate-pulse-soft" />
         </section>
 
         {/* ============================================================
             THE CAST — Talantis × Atlas side by side
             ============================================================ */}
-        <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-32">
-          <div id="cast"className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
+        <section id="cast" className="px-6 md:px-12 max-w-7xl mx-auto py-32 scroll-mt-20">
+          <div className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
             <span className="w-10 h-px bg-gold" />
             <span>The Cast</span>
           </div>

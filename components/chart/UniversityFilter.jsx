@@ -39,7 +39,7 @@ export default function UniversityFilter({
     <div className="relative inline-block">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-3 px-5 py-3 bg-navy-soft border border-line hover:border-gold transition-colors min-w-[240px] text-left"
+        className="flex items-center gap-3 px-5 py-3 bg-navy-soft border border-line rounded-xl hover:border-gold transition-colors min-w-[240px] text-left"
       >
         <span className="flex-1 font-body text-cream">{display}</span>
         <ChevronDown
@@ -49,7 +49,7 @@ export default function UniversityFilter({
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-navy-soft border border-line shadow-xl z-20 max-h-80 overflow-y-auto">
+        <div className="absolute top-full mt-2 left-0 right-0 bg-navy-soft border border-line rounded-xl shadow-xl z-20 max-h-80 overflow-y-auto">
           <button
             onClick={() => {
               onChange("");
