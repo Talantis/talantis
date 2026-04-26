@@ -50,7 +50,7 @@ function PolishedBar({ x, y, width, height, fill, payload, maxCount }) {
         y={y + 1}
         width={Math.max(width - 3, 0)}
         height={1.5}
-        fill={isTop ? "rgba(180, 230, 235, 0.75)" : "rgba(255, 240, 200, 0.55)"}
+        fill={isTop ? "rgba(255, 248, 220, 0.85)" : "rgba(255, 240, 200, 0.7)"}
         rx={1}
       />
     </g>
@@ -142,19 +142,21 @@ export default function InternChart({ data = [], loading = false, error = null }
         <BarChart data={data} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <defs>
             <linearGradient id="barGold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f0d175" />
-              <stop offset="55%" stopColor="#c9a548" />
-              <stop offset="100%" stopColor="#6a5424" />
+              <stop offset="0%" stopColor="#f5d77a" />
+              <stop offset="55%" stopColor="#d4a548" />
+              <stop offset="100%" stopColor="#a07c2c" />
             </linearGradient>
             <linearGradient id="barTop" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#9ae0e8" />
-              <stop offset="35%" stopColor="#f0d175" />
-              <stop offset="100%" stopColor="#7a5e2c" />
+              <stop offset="0%" stopColor="#ffe8a8" />
+              <stop offset="55%" stopColor="#e9c25a" />
+              <stop offset="100%" stopColor="#c9a548" />
             </linearGradient>
-            <filter id="topGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
+            <filter id="topGlow" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="6" in="SourceAlpha" result="blur" />
+              <feFlood floodColor="#7dd6df" floodOpacity="0.7" result="glow" />
+              <feComposite in="glow" in2="blur" operator="in" result="aquaGlow" />
               <feMerge>
-                <feMergeNode in="blur" />
+                <feMergeNode in="aquaGlow" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
