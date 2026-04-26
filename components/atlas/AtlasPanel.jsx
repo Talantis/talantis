@@ -70,7 +70,7 @@ function clearTranscript() {
 // ────────────────────────────────────────────────────────────────────────────
 const markdownComponents = {
   p: ({ children }) => (
-    <p className="font-display text-sm leading-relaxed text-cream mb-2.5 last:mb-0">
+    <p className="font-body text-sm leading-relaxed text-cream mb-2.5 last:mb-0">
       {children}
     </p>
   ),
@@ -87,7 +87,7 @@ const markdownComponents = {
     <ol className="list-none space-y-1 my-2 pl-0">{children}</ol>
   ),
   li: ({ children }) => (
-    <li className="font-display text-sm leading-relaxed text-cream pl-4 relative before:content-['✦'] before:absolute before:left-0 before:text-gold before:text-[10px] before:top-1.5">
+    <li className="font-body text-sm leading-relaxed text-cream pl-4 relative before:content-['✦'] before:absolute before:left-0 before:text-gold before:text-[10px] before:top-1.5">
       {children}
     </li>
   ),
@@ -252,17 +252,17 @@ export default function AtlasPanel({ onClose }) {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-line flex-shrink-0">
         <div className="flex-1">
-          <div className="font-display text-lg text-cream leading-tight">
+          <div className="font-body text-lg text-cream leading-tight">
             Atlas
           </div>
-          <div className="font-display italic text-[10px] tracking-wider-md uppercase text-gold">
+          <div className="font-body italic text-[10px] tracking-wider-md uppercase text-gold">
             The Guide
           </div>
         </div>
         {messages.length > 0 && (
           <button
             onClick={handleNewConversation}
-            className="font-display italic text-[10px] tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors flex items-center gap-1.5"
+            className="font-body italic text-[10px] tracking-wider-md uppercase text-[#5bc4c0] transition-colors flex items-center gap-1.5"
             title="Clear conversation"
           >
             <MessageSquarePlus size={12} />
@@ -286,7 +286,7 @@ export default function AtlasPanel({ onClose }) {
         {/* Empty — show suggestions */}
         {isEmpty && (
           <div className="space-y-3">
-            <p className="font-display italic text-sm text-cream-dim">
+            <p className="font-body italic text-sm text-cream-dim">
               &ldquo;Ask me about the shape of talent. Where it flows, where it
               pools, where it hides.&rdquo;
             </p>
@@ -324,7 +324,7 @@ export default function AtlasPanel({ onClose }) {
 
         {/* Error */}
         {error && (
-          <div className="font-display italic text-cream-dim border-l-2 border-red-500/50 pl-3 py-1">
+          <div className="font-body italic text-cream-dim border-l-2 border-red-500/50 pl-3 py-1">
             <div className="text-xs text-cream">
               Atlas couldn&rsquo;t reach the shore.
             </div>
@@ -370,10 +370,10 @@ function UserMessage({ content }) {
   return (
     <div className="flex justify-end">
       <div className="max-w-[85%] bg-navy border-l-2 border-gold px-3.5 py-2">
-        <div className="font-display italic text-[10px] tracking-wider-md uppercase text-gold mb-1">
+        <div className="font-body italic text-[10px] tracking-wider-md uppercase text-gold mb-1">
           You
         </div>
-        <div className="font-display text-sm leading-relaxed text-cream whitespace-pre-wrap">
+        <div className="font-body text-xs leading-relaxed text-cream whitespace-pre-wrap">
           {content}
         </div>
       </div>
@@ -384,19 +384,19 @@ function UserMessage({ content }) {
 function AssistantMessage({ content, inProgress = false, activeTool = null }) {
   return (
     <div className="flex flex-col">
-      <div className="font-display italic text-[10px] tracking-wider-md uppercase text-gold mb-1.5">
+      <div className="font-body italic text-[10px] tracking-wider-md uppercase text-gold mb-1.5">
         Atlas
       </div>
 
       {inProgress && activeTool && (
-        <div className="flex items-center gap-1.5 mb-1.5 font-display italic text-[10px] tracking-wider-md uppercase text-gold">
+        <div className="flex items-center gap-1.5 mb-1.5 font-body italic text-[10px] tracking-wider-md uppercase text-gold">
           <Loader2 size={10} className="animate-spin" />
           <span>{TOOL_LABELS[activeTool] || activeTool}</span>
         </div>
       )}
 
       {inProgress && !content && !activeTool && (
-        <div className="flex items-center gap-2 font-display italic text-sm text-cream-dim">
+        <div className="flex items-center gap-2 font-body italic text-sm text-cream-dim">
           <Loader2 size={12} className="animate-spin text-gold" />
           <span>mapping the shore...</span>
         </div>
