@@ -36,6 +36,46 @@ function CustomTooltip({ active, payload }) {
     </div>
   );
 }
+// ADDED — LogoTick using logo_url from backend, falls back to initials
+function LogoTick({ x, y, payload, data }) {
+  const item = data.find(d => d.company === payload.value);
+  if (!item) return null;
+  const size = 28;
+  return (
+    <foreignObject x={x - size / 2} y={y + 4} width={size} height={size}>
+      <div
+        xmlns="http://www.w3.org/1999/xhtml"
+        title={item.company}
+        style={{
+          width: size,
+          height: size,
+          border: "1px solid rgba(245,240,232,0.15)",
+          background: "rgba(255,255,255,0.06)",
+          borderRadius: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+        }}
+      >
+        <img
+          src={item.logo_url}
+          alt={item.company}
+          style={{
+            width: 18,
+            height: 18,
+            objectFit: "contain",
+            opacity: 0.85,
+          }}
+          onError={(e) => {
+            e.target.style.display = "none";
+            e.target.parentNode.innerHTML = `<span style="font-size:7px;color:rgba(245,240,232,0.5)">${item.company.slice(0, 3).toUpperCase()}</span>`;
+          }}
+        />
+      </div>
+    </foreignObject>
+  );
+}
 
 export default function InternChart({ data = [], loading = false, error = null }) {
   // ── Loading state ──────────────────────────────────────────────────────
@@ -81,16 +121,10 @@ export default function InternChart({ data = [], loading = false, error = null }
           <XAxis
             dataKey="company"
             stroke="#c9b88a"
-            tick={{
-              fill: "#c9b88a",
-              fontFamily: "var(--font-inter-tight)",
-              fontSize: 11,
-            }}
+            tick={(props) => <LogoTick {...props} data={data} />}
             axisLine={{ stroke: "#2a3a5c" }}
             tickLine={false}
             interval={0}
-            angle={-30}
-            textAnchor="end"
             height={60}
           />
           <YAxis
