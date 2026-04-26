@@ -73,7 +73,7 @@ export default function HomePage() {
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href="#atlas"
+              href="#cast"
               style={ {borderRadius: "6px"}}
               className="inline-flex items-center gap-3 px-8 py-4 border border-line text-cream font-body font-medium hover:border-[#5bc4c0] hover:text-[#5bc4c0] transition-colors"
             >
@@ -89,7 +89,7 @@ export default function HomePage() {
             THE CAST — Talantis × Atlas side by side
             ============================================================ */}
         <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-32">
-          <div className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
+          <div id="cast"className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
             <span className="w-10 h-px bg-gold" />
             <span>The Cast</span>
           </div>
