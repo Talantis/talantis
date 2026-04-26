@@ -1,6 +1,6 @@
 <div align="center">
 
-![Talantis hero banner](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/hero-banner.png)
+![Talantis hero banner](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/hero-Banner.png)
 
 # Talantis
 
@@ -34,7 +34,7 @@ You can talk to Atlas anywhere. On the [Talantis web app](https://talantis.verce
 
 ## See it move
 
-[IMAGE 2: Atlas chat conversation screenshot — your best multi-turn conversation captured from the FAB chat panel. Ideally shows Question 1 at top → tool indicator badge → Atlas response with specific numbers. Crop tight to just the chat panel, ~480px wide.]
+![Atlas chat conversation](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/atlas-chat-ss.png)
 
 > *"We're Stripe. Where are Plaid, Brex, and Ramp finding talent we're missing?"*
 
@@ -48,7 +48,7 @@ No SQL. No dashboards. No "let me get back to you on that." Just the answer, gro
 
 ## How it works
 
-[IMAGE 3: Architecture diagram — a clean horizontal flow. Left: "Talantis Web App" (Next.js + Vercel logo). Middle: "Talent Intelligence Core" (Python + Claude tool-use loop). Right: "Postgres" (Supabase logo) and "Atlas uAgent" (Fetch.ai logo) branching off. Make in Excalidraw or Figma, export PNG ~1200×400.]
+![Architecture Diagram](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/architecuture.png)
 
 Three layers:
 
@@ -56,11 +56,21 @@ Three layers:
 
 **Talent Intelligence Core** — A Python module (`api/atlas.py`) that runs Claude Sonnet 4.5 in an agentic tool-use loop. Three tools defined in `api/tools.py`:
 
+**Recruiter-side** — *companies asking about pipelines*
+
 | Tool | Purpose |
 |------|---------|
 | `filter_internships` | Direct factual queries — counts, lists, rankings by university × company × industry × role × year |
 | `compare_companies` | Head-to-head pipeline comparison across multiple companies |
-| `find_similar_schools` | The signature insight — pipeline gap analysis. Where do peer companies recruit that you don't? |
+| `find_similar_schools` ★ | The signature insight — pipeline gap analysis. Where do peer companies recruit that you don't? |
+
+**Student-side** — *students asking about realistic options*
+
+| Tool | Purpose |
+|------|---------|
+| `find_target_companies` | Companies tiered by realism — strong-fit, realistic, and reach based on your school's placement history |
+| `analyze_school_at_company` | Your school's track record at a specific company — placement count, rank, and how peer schools fared |
+| `discover_career_paths` ★ | The signature insight — pathway discovery. Where do students from comparable schools land that yours hasn't yet? |
 
 Each tool maps to a Postgres function defined in `schema_tools.sql` for indexed performance.
 
