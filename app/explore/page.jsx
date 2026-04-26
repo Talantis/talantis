@@ -6,6 +6,15 @@ import Footer from "@/components/Footer";
 import InternChart from "@/components/chart/InternChart";
 import UniversityFilter from "@/components/chart/UniversityFilter";
 
+// Clearbit's free Logo API was shut down — rewrite the seeded URLs
+// to Google's S2 favicon service, which is free and needs no key.
+function rewriteLogoUrl(url) {
+  if (!url) return url;
+  const match = url.match(/logo\.clearbit\.com\/([^/?#]+)/);
+  if (!match) return url;
+  return `https://www.google.com/s2/favicons?domain=${match[1]}&sz=128`;
+}
+
 export default function ExplorePage() {
   const [university, setUniversity] = useState("");
 
@@ -49,7 +58,7 @@ export default function ExplorePage() {
           .map((r) => ({
             company: r.company,
             count: Number(r.intern_count) || 0,
-            logo_url: r.logo_url,
+            logo_url: rewriteLogoUrl(r.logo_url),
           }));
         setChartData(rows);
       })
