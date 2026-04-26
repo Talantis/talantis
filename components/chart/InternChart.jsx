@@ -142,7 +142,7 @@ export default function InternChart({ data = [], loading = false, error = null }
             content={<CustomTooltip />}
             cursor={{ fill: "rgba(79, 179, 191, 0.08)" }}
           />
-          <Bar dataKey="count" fill="#f5ecd7" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="count" fill="#ffffff" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
