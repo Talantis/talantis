@@ -48,7 +48,7 @@ No SQL. No dashboards. No "let me get back to you on that." Just the answer, gro
 
 ## How it works
 
-![Architecture Diagram](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/architecuture.png)
+![Architecture Diagram](https://raw.githubusercontent.com/Talantis/talantis/main/docs/images/archi.png)
 
 Three layers:
 
