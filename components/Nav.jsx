@@ -39,35 +39,35 @@ export default function Nav() {
 
   return (
     <header className="relative z-10 border-b border-line">
-      <nav className="px-6 md:px-10 py-5 flex items-center justify-between">
-        {/* Logo + wordmark — flush left */}
+      <nav className="px-4 sm:px-6 md:px-10 py-4 md:py-5 flex items-center justify-between gap-3">
+        {/* Logo + wordmark — flush left. Mark hides on tiny screens; wordmark shrinks. */}
         <Link
           href="/"
-          className="flex items-center gap-3 group"
+          className="flex items-center gap-2 md:gap-3 group min-w-0 shrink"
         >
-          <TalantisMark size={32} />
-          <span className="font-display text-2xl text-cream">
+          <span className="hidden sm:inline-flex"><TalantisMark size={32} /></span>
+          <span className="font-display text-xl md:text-2xl text-cream whitespace-nowrap">
             T<em className="italic">a</em>lantis
           </span>
         </Link>
 
-        {/* Links — flush right */}
-        <div className="flex items-center gap-6 md:gap-8">
+        {/* Links — flush right. Tight gaps on mobile so all three fit. */}
+        <div className="flex items-center gap-4 sm:gap-6 md:gap-8 shrink-0">
           <Link
             href="/explore"
-            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-body font-bold text-[11px] sm:text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             Explore
           </Link>
           <Link
             href="/submit"
-            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-body font-bold text-[11px] sm:text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             Submit
           </Link>
           <button
             onClick={handleAboutClick}
-            className="font-body font-bold text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
+            className="font-body font-bold text-[11px] sm:text-xs tracking-wider-md uppercase text-cream-dim hover:text-gold transition-colors"
           >
             About
           </button>
