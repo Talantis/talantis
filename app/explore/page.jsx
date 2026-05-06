@@ -130,12 +130,11 @@ export default function ExplorePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Total Hires */}
-            <div className="rounded-2xl" style={{
+            <div className="rounded-2xl px-5 py-3 md:px-6 md:py-5" style={{
               background: "#13243d",
               border: "1px solid rgba(255,255,255,0.1)",
-              padding: "20px 24px",
             }}>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 md:mb-2">
                 <div style={{
                   background: "rgba(27,174,148,0.15)",
                   borderRadius: "10px",
@@ -151,18 +150,17 @@ export default function ExplorePage() {
                 </div>
                 <span className="font-body text-sm text-cream-dim">Total Hires</span>
               </div>
-              <div className="font-display text-4xl text-cream font-bold">
+              <div className="font-display text-3xl md:text-4xl text-cream font-bold">
                 {chartLoading ? "—" : totalHires}
               </div>
             </div>
 
             {/* Top Company */}
-            <div className="rounded-2xl" style={{
+            <div className="rounded-2xl px-5 py-3 md:px-6 md:py-5" style={{
               background: "#13243d",
               border: "1px solid rgba(255,255,255,0.1)",
-              padding: "20px 24px",
             }}>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 md:mb-2">
                 <div style={{
                   background: "rgba(27,174,148,0.15)",
                   borderRadius: "10px",
@@ -176,7 +174,7 @@ export default function ExplorePage() {
                 </div>
                 <span className="font-body text-sm text-cream-dim">Top Company</span>
               </div>
-              <div className="font-display text-3xl text-cream font-bold leading-tight">
+              <div className="font-display text-2xl md:text-3xl text-cream font-bold leading-tight">
                 {chartLoading ? "—" : topCompany?.company ?? "—"}
               </div>
               {topCompany && (
@@ -187,12 +185,11 @@ export default function ExplorePage() {
             </div>
 
             {/* Average Hires */}
-            <div className="rounded-2xl" style={{
+            <div className="rounded-2xl px-5 py-3 md:px-6 md:py-5" style={{
               background: "#13243d",
               border: "1px solid rgba(255,255,255,0.1)",
-              padding: "20px 24px",
             }}>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 md:mb-2">
                 <div style={{
                   background: "rgba(27,174,148,0.15)",
                   borderRadius: "10px",
@@ -206,7 +203,7 @@ export default function ExplorePage() {
                 </div>
                 <span className="font-body text-sm text-cream-dim">Average Hires</span>
               </div>
-              <div className="font-display text-4xl text-cream font-bold">
+              <div className="font-display text-3xl md:text-4xl text-cream font-bold">
                 {chartLoading ? "—" : avgHires}
               </div>
             </div>

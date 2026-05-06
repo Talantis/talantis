@@ -14,7 +14,7 @@ export default function HomePage() {
         {/* ============================================================
             HERO — the mythic opening. Pitch line + primary mark.
             ============================================================ */}
-        <section className="relative min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-20">
+        <section className="relative min-h-[70vh] md:min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-12 md:py-20">
 
           <div className="absolute right-24 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block">
             <div className="relative w-96 h-96" style={{ animation: 'slowRotate 60s linear infinite' }}>
@@ -78,7 +78,7 @@ export default function HomePage() {
         {/* ============================================================
             THE CAST — Talantis × Atlas side by side
             ============================================================ */}
-        <section id="cast" className="px-6 md:px-12 max-w-7xl mx-auto py-32 scroll-mt-20">
+        <section id="cast" className="px-6 md:px-12 max-w-7xl mx-auto py-16 md:py-32 scroll-mt-20">
           <div className="font-body italic text-md tracking-wider-lg uppercase text-gold mb-6 flex items-center gap-4">
             <span className="w-10 h-px bg-gold" />
             <span>The Cast</span>
@@ -123,7 +123,7 @@ export default function HomePage() {
         {/* ============================================================
             THE STORY — brand thesis
             ============================================================ */}
-        <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-32">
+        <section className="border-t border-line px-6 md:px-12 max-w-7xl mx-auto py-16 md:py-32">
           <div className="font-body italic text-md tracking-wider-md uppercase text-gold mb-10">
             § 01 · The Story
           </div>

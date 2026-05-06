@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -23,6 +23,34 @@ import { Loader2, ChevronLeft, ChevronRight } from "lucide-react";
  *   loading — show a spinner instead of the chart
  *   error   — show an error message instead of the chart
  */
+
+// On mobile, 12 logos crammed into a ~340px-wide chart leaves <30px per bar
+// and the 28px logo ticks visibly overlap. We render 6 per page on small
+// screens and 12 on tablet/desktop. matchMedia recomputes whenever the
+// viewport crosses the 768px threshold (e.g. orientation change).
+function usePageSize() {
+  // Default to desktop on first render. The effect below corrects this on the
+  // client before paint if we're actually on a small screen — at most one
+  // re-render, which the chart absorbs in well under a frame.
+  const [pageSize, setPageSize] = useState(12);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setPageSize(mq.matches ? 6 : 12);
+    update();
+    // addEventListener is preferred but Safari < 14 only supports addListener
+    if (mq.addEventListener) {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    } else {
+      mq.addListener(update);
+      return () => mq.removeListener(update);
+    }
+  }, []);
+
+  return pageSize;
+}
 
 function CustomTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -79,11 +107,18 @@ function LogoTick({ x, y, payload, data }) {
   );
 }
 
-// ADDED
-const PAGE_SIZE = 12;
-
 export default function InternChart({ data = [], loading = false, error = null }) {
   const [page, setPage] = useState(0); // ADDED — must be before early returns
+  const PAGE_SIZE = usePageSize();     // 6 on mobile, 12 on tablet/desktop
+
+  // If the viewport changes (rotation, devtools resize, etc.) the page index
+  // could now be out of range — e.g. you were on page 4 of 5 (12-per-page,
+  // 60 items) and now mobile shows 6-per-page → page 4 only has data through
+  // index 30, but you're trying to slice items 48-59 which are gone.
+  // Reset to page 0 whenever PAGE_SIZE changes.
+  useEffect(() => {
+    setPage(0);
+  }, [PAGE_SIZE]);
 
   // ── Loading state ──────────────────────────────────────────────────────
   if (loading) {
