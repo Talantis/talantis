@@ -14,7 +14,7 @@ export default function HomePage() {
         {/* ============================================================
             HERO — the mythic opening. Pitch line + primary mark.
             ============================================================ */}
-        <section className="relative min-h-[70vh] md:min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-12 md:py-20">
+        <section className="relative min-h-[90vh] md:min-h-[85vh] flex flex-col justify-center px-6 md:px-12 max-w-7xl mx-auto py-12 md:py-20">
 
           <div className="absolute right-24 top-1/2 -translate-y-1/2 pointer-events-none hidden lg:block">
             <div className="relative w-96 h-96" style={{ animation: 'slowRotate 60s linear infinite' }}>
